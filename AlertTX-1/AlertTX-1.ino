@@ -1,393 +1,326 @@
-// Main Arduino sketch for Alert TX-1
-#include <Arduino.h>
+/**
+ * Alert TX-1 - ESP32-S3 Reverse TFT Feather Beeper Device
+ * 
+ * A retro beeper device with:
+ * - RTTTL ringtone playback
+ * - BeeperHero rhythm game
+ * - React-like UI framework
+ * - MQTT connectivity
+ * - Power management
+ * 
+ * Hardware: Adafruit ESP32-S3 Reverse TFT Feather
+ * Display: Built-in 240x135 TFT
+ * Buttons: Built-in A, B, C buttons
+ * Audio: Passive buzzer on GPIO15
+ */
 
-// Include custom headers
+#include <Adafruit_GFX.h>
+#include <Adafruit_ST7789.h>
+#include <SPI.h>
+
+// Alert TX-1 modules
 #include "src/config/settings.h"
+#include "src/hardware/ButtonManager.h"
+#include "src/hardware/DisplayConfig.h"
 #include "src/hardware/PowerManager.h"
-#include "src/ui/AppStateManager.h"
-#include "src/ui/UIManager.h"
-#include "src/mqtt/MQTTClient.h"
-#include "src/hardware/ButtonHandler.h"
-#include "src/hardware/Buzzer.h"
-#include "src/hardware/LED.h"
 #include "src/ringtones/RingtonePlayer.h"
+#include "src/mqtt/MQTTClient.h"
 #include "src/game/BeeperHeroGame.h"
-#include "lib/DebounceUtility.h"
 
-// Global instances
-UIManager uiManager;
-MQTTClient mqttClient;
-ButtonHandler buttonHandler;
-Buzzer buzzer;
-LED led;
+// UI Framework
+#include "src/ui/UIFramework.h"
+
+// ========================================
+// Hardware Configuration
+// ========================================
+
+// Display (built-in on ESP32-S3 Reverse TFT Feather)
+Adafruit_ST7789 display = Adafruit_ST7789(TFT_CS, TFT_DC, TFT_RST);
+
+// Hardware managers
+ButtonManager buttonManager;
+DisplayConfig displayConfig;
+PowerManager powerManager;
 RingtonePlayer ringtonePlayer;
-BeeperHeroGame beeperHeroGame(&uiManager, &buttonHandler, &ringtonePlayer);
+MQTTClient mqttClient;
 
-// Power management configuration
-PowerConfig powerConfig;
+// UI System
+UIManager uiManager;
+HomeScreen* homeScreen = nullptr;
+RingtonesScreen* ringtonesScreen = nullptr;
 
-// Debounce utilities
-MultiDebounceUtility buttonDebouncers(3, 50); // 3 buttons, 50ms debounce
-StateChangeDebounceUtility powerStateDebouncer(200); // 200ms for power state changes
-StateChangeDebounceUtility appStateDebouncer(100); // 100ms for app state changes
-DebounceUtility mqttMessageDebouncer(1000); // 1 second for MQTT message handling
+// Game system
+BeeperHeroGame* beeperHeroGame = nullptr;
 
-// Timing variables for non-blocking operations
-unsigned long lastUIUpdate = 0;
-unsigned long lastMQTTUpdate = 0;
-unsigned long lastButtonUpdate = 0;
-unsigned long lastStatusUpdate = 0;
+// ========================================
+// System State
+// ========================================
+bool systemInitialized = false;
+unsigned long lastHeartbeat = 0;
+unsigned long lastButtonCheck = 0;
 
+// ========================================
+// Setup Function
+// ========================================
 void setup() {
     Serial.begin(115200);
-    Serial.println("Alert TX-1 Starting...");
+    delay(100);
     
-    // Configure power management
-    powerConfig.inactivityTimeout = INACTIVITY_TIMEOUT_MS;
-    powerConfig.deepSleepTimeout = 300000; // 5 minutes
-    powerConfig.pollingInterval = 30000;   // 30 seconds between alert checks
-    powerConfig.sleepBrightness = 50;
-    powerConfig.activeBrightness = 100;
-    powerConfig.enableWiFiInPolling = true;
-    powerConfig.enableMQTTInPolling = true;
+    Serial.println("\n" + String("=").repeat(50));
+    Serial.println("Alert TX-1 Starting Up...");
+    Serial.println("Hardware: ESP32-S3 Reverse TFT Feather");
+    Serial.println("Version: 1.0.0");
+    Serial.println("=".repeat(50));
+
+    // Initialize display first
+    initializeDisplay();
     
-    // Initialize power manager first
-    powerManager.begin(powerConfig);
+    // Show splash screen
+    showSplashScreen();
     
-    // Set up power manager callbacks
-    powerManager.setStateChangeCallback([](PowerState oldState, PowerState newState) {
-        // Debounce power state changes
-        if (powerStateDebouncer.update(static_cast<int>(newState))) {
-            Serial.printf("Power state changed: %s -> %s\n", 
-                          powerManager.getStateString(oldState),
-                          powerManager.getStateString(newState));
-        }
-    });
+    // Initialize hardware
+    initializeHardware();
     
-    powerManager.setBatteryLevelCallback([](BatteryLevel level) {
-        Serial.printf("Battery level: %s\n", powerManager.getBatteryLevelString(level));
-        // Update UI with battery status
-        if (level == BatteryLevel::CRITICAL) {
-            // Show low battery warning
-        }
-    });
+    // Initialize software systems
+    initializeSoftwareSystems();
     
-    powerManager.setEnterSleepCallback([]() {
-        Serial.println("Entering sleep mode - saving state");
-        // Save any necessary state before sleep
-    });
+    // Initialize UI framework
+    initializeUI();
     
-    powerManager.setWakeUpCallback([]() {
-        Serial.println("Waking up from sleep");
-        // Restore state after wake
-    });
+    // Final setup
+    finalizeSetup();
     
-    powerManager.setPollingCallback([]() {
-        Serial.println("Polling for alerts...");
-        // Check for new MQTT messages
-        mqttClient.checkForMessages();
-    });
-    
-    // Set up app state manager callbacks
-    appStateManager.setStateChangeCallback([](AppState oldState, AppState newState) {
-        // Debounce app state changes
-        if (appStateDebouncer.update(static_cast<int>(newState))) {
-            Serial.printf("App state changed: %s -> %s\n", 
-                          appStateManager.getStateString(oldState),
-                          appStateManager.getStateString(newState));
-        }
-    });
-    
-    // Initialize hardware components
-    led.begin(13); // GPIO13 - onboard LED
-    buzzer.begin(BUZZER_PIN);
-    buttonHandler.begin();
-    
-    // Initialize UI system
-    uiManager.begin();
-    
-    // Initialize MQTT client
-    mqttClient.begin(WIFI_SSID, WIFI_PASSWORD, MQTT_BROKER, MQTT_PORT, MQTT_CLIENT_ID);
-    
-    // Initialize game system
-    beeperHeroGame.begin();
-    
-    // Initialize ringtone player
-    ringtonePlayer.begin();
-    
-    Serial.println("Alert TX-1 Initialized Successfully");
-    powerManager.printStatus();
-    appStateManager.printStatus();
+    Serial.println("Alert TX-1 Ready!");
+    systemInitialized = true;
 }
 
+// ========================================
+// Main Loop
+// ========================================
 void loop() {
-    unsigned long currentTime = millis();
-    
-    // Update power manager (handles state transitions and battery monitoring)
-    powerManager.update();
-    
-    // Only run active components based on power state
-    PowerState currentPowerState = powerManager.getCurrentState();
-    
-    switch (currentPowerState) {
-        case PowerState::DEEP_SLEEP:
-            // Should not reach here - deep sleep is handled by ESP32
-            break;
-            
-        case PowerState::SLEEP:
-            // Minimal updates in sleep mode
-            if (currentTime - lastButtonUpdate >= 100) {
-                updateButtonHandling();
-                lastButtonUpdate = currentTime;
-            }
-            break;
-            
-        case PowerState::POLLING:
-            // Check for alerts, then return to sleep
-            if (currentTime - lastMQTTUpdate >= 1000) {
-                mqttClient.update();
-                lastMQTTUpdate = currentTime;
-            }
-            break;
-            
-        case PowerState::ACTIVE:
-            // Full functionality in active state
-            updateActiveComponents(currentTime);
-            break;
-    }
-    
-    // Small delay for stability
-    delay(10); // 100Hz main loop
-}
-
-void updateActiveComponents(unsigned long currentTime) {
-    // Update button handling (every 10ms)
-    if (currentTime - lastButtonUpdate >= 10) {
-        updateButtonHandling();
-        lastButtonUpdate = currentTime;
-    }
-    
-    // Update UI system (every 16ms = 60 FPS)
-    if (currentTime - lastUIUpdate >= 16) {
-        uiManager.update();
-        lastUIUpdate = currentTime;
-    }
-    
-    // Update MQTT client (every 100ms)
-    if (currentTime - lastMQTTUpdate >= 100) {
-        mqttClient.update();
-        lastMQTTUpdate = currentTime;
-    }
-    
-    // Update status display (every 1 second)
-    if (currentTime - lastStatusUpdate >= 1000) {
-        updateStatusDisplay();
-        lastStatusUpdate = currentTime;
-    }
-    
-    // Update audio system (non-blocking)
-    ringtonePlayer.update();
-    
-    // Update game system if in game state
-    if (appStateManager.isInGame()) {
-        beeperHeroGame.update();
-    }
-}
-
-void updateButtonHandling() {
-    // Update button handler
-    buttonHandler.update();
-    
-    // Record activity for power management if any button activity
-    if (buttonHandler.hasActivity()) {
-        powerManager.recordActivity();
-    }
-    
-    // Get button events and handle them with debouncing
-    ButtonEvent event = buttonHandler.getEvent();
-    if (event != BUTTON_NONE) {
-        handleButtonEvent(event);
-    }
-}
-
-void updateStatusDisplay() {
-    // Update battery status on display
-    BatteryLevel batteryLevel = powerManager.getBatteryLevel();
-    float batteryVoltage = powerManager.getBatteryVoltage();
-    
-    // Update LED based on battery level
-    switch (batteryLevel) {
-        case BatteryLevel::CRITICAL:
-            led.setBlinkPattern(100, 100); // Fast blink
-            break;
-        case BatteryLevel::LOW:
-            led.setBlinkPattern(500, 500); // Slow blink
-            break;
-        case BatteryLevel::MEDIUM:
-            led.setSolidColor(255, 255, 0); // Yellow
-            break;
-        case BatteryLevel::HIGH:
-            led.setSolidColor(0, 255, 0); // Green
-            break;
-        case BatteryLevel::CHARGING:
-            led.setSolidColor(0, 0, 255); // Blue
-            break;
-    }
-    
-    // Print status to serial for debugging
-    if (Serial.availableForWrite()) {
-        Serial.printf("Status - Battery: %.2fV (%s), Power: %s, App: %s\n",
-                      batteryVoltage,
-                      powerManager.getBatteryLevelString(batteryLevel),
-                      powerManager.getStateString(powerManager.getCurrentState()),
-                      appStateManager.getStateString(appStateManager.getCurrentState()));
-    }
-}
-
-// Button event handlers
-void handleButtonEvent(ButtonEvent event) {
-    // Record activity for power management
-    powerManager.recordActivity();
-    
-    switch (event) {
-        case BUTTON_A_PRESS:
-            handleButtonAPress();
-            break;
-        case BUTTON_A_LONG_PRESS:
-            handleButtonALongPress();
-            break;
-        case BUTTON_B_PRESS:
-            handleButtonBPress();
-            break;
-        case BUTTON_B_LONG_PRESS:
-            handleButtonBLongPress();
-            break;
-        case BUTTON_C_PRESS:
-            handleButtonCPress();
-            break;
-        case BUTTON_C_LONG_PRESS:
-            handleButtonCLongPress();
-            break;
-        default:
-            break;
-    }
-}
-
-void handleButtonAPress() {
-    PowerState currentPowerState = powerManager.getCurrentState();
-    AppState currentAppState = appStateManager.getCurrentState();
-    
-    // Handle power state transitions first
-    if (currentPowerState == PowerState::SLEEP || currentPowerState == PowerState::POLLING) {
-        powerManager.wakeUp();
+    if (!systemInitialized) {
+        delay(100);
         return;
     }
     
-    // Handle app state transitions
-    switch (currentAppState) {
-        case AppState::IDLE:
-            appStateManager.setState(AppState::MENU);
-            break;
-        case AppState::MENU:
-            // Navigate back or select
-            uiManager.handleButtonA();
-            break;
-        case AppState::GAME:
-            beeperHeroGame.handleButtonA();
-            break;
-        case AppState::ALERT:
-            // Dismiss alert
-            appStateManager.setState(AppState::IDLE);
-            break;
-        default:
-            // Handle other app states
-            break;
+    unsigned long now = millis();
+    
+    // Critical system updates (every cycle)
+    updateButtons();
+    updateRingtonePlayer();
+    updateUI();
+    
+    // Regular updates (throttled)
+    if (now - lastHeartbeat > 100) { // 10Hz for less critical updates
+        updatePowerManagement();
+        updateMQTT();
+        updateGame();
+        lastHeartbeat = now;
+    }
+    
+    // Handle low power mode
+    powerManager.handleLowPowerMode();
+    
+    // Yield to other tasks
+    yield();
+}
+
+// ========================================
+// Initialization Functions
+// ========================================
+
+void initializeDisplay() {
+    Serial.print("Initializing display... ");
+    
+    // Initialize the built-in TFT display
+    display.init(135, 240); // 1.14" display
+    display.setRotation(3);  // Landscape orientation
+    display.fillScreen(ST77XX_BLACK);
+    
+    Serial.println("OK");
+}
+
+void showSplashScreen() {
+    display.setTextColor(ST77XX_WHITE);
+    display.setTextSize(2);
+    
+    // Center the text
+    int16_t x1, y1;
+    uint16_t w, h;
+    display.getTextBounds("Alert TX-1", 0, 0, &x1, &y1, &w, &h);
+    int centerX = (240 - w) / 2;
+    int centerY = (135 - h) / 2;
+    
+    display.setCursor(centerX, centerY);
+    display.println("Alert TX-1");
+    
+    // Version info
+    display.setTextSize(1);
+    display.getTextBounds("ESP32-S3 Beeper", 0, 0, &x1, &y1, &w, &h);
+    centerX = (240 - w) / 2;
+    display.setCursor(centerX, centerY + 25);
+    display.println("ESP32-S3 Beeper");
+    
+    delay(2000); // Show splash for 2 seconds
+}
+
+void initializeHardware() {
+    Serial.println("Initializing hardware...");
+    
+    // Button manager
+    Serial.print("  - Buttons... ");
+    buttonManager.begin();
+    Serial.println("OK");
+    
+    // Display configuration
+    Serial.print("  - Display config... ");
+    displayConfig.begin();
+    Serial.println("OK");
+    
+    // Power management
+    Serial.print("  - Power management... ");
+    powerManager.begin();
+    Serial.println("OK");
+    
+    // Audio system
+    Serial.print("  - Audio (Buzzer)... ");
+    ringtonePlayer.begin(BUZZER_PIN);
+    Serial.println("OK");
+}
+
+void initializeSoftwareSystems() {
+    Serial.println("Initializing software systems...");
+    
+    // MQTT client
+    Serial.print("  - MQTT client... ");
+    mqttClient.begin();
+    Serial.println("OK");
+    
+    // Generate ringtone data (if not already done)
+    Serial.print("  - Ringtone data... ");
+    int ringtoneCount = ringtonePlayer.getRingtoneCount();
+    Serial.printf("OK (%d ringtones loaded)\n", ringtoneCount);
+}
+
+void initializeUI() {
+    Serial.println("Initializing UI framework...");
+    
+    // Initialize the UI framework
+    UIFramework::initialize();
+    
+    // Initialize UI manager
+    uiManager.begin();
+    
+    // Create and register screens
+    Serial.print("  - Creating screens... ");
+    homeScreen = uiManager.registerScreen<HomeScreen>(&buttonManager, &ringtonePlayer);
+    ringtonesScreen = uiManager.registerScreen<RingtonesScreen>(&ringtonePlayer);
+    Serial.println("OK");
+    
+    // Set initial screen
+    uiManager.setScreen(homeScreen);
+    
+    Serial.println("  - UI framework ready");
+}
+
+void finalizeSetup() {
+    // Initialize game system (optional)
+    Serial.print("Initializing BeeperHero game... ");
+    beeperHeroGame = new BeeperHeroGame(&uiManager, &buttonManager, &ringtonePlayer);
+    Serial.println("OK");
+    
+    // Play startup sound
+    Serial.print("Playing startup sound... ");
+    ringtonePlayer.playRingtoneByName("Mario");
+    Serial.println("OK");
+    
+    // Clear splash screen
+    display.fillScreen(ST77XX_BLACK);
+}
+
+// ========================================
+// Update Functions
+// ========================================
+
+void updateButtons() {
+    static unsigned long lastButtonUpdate = 0;
+    unsigned long now = millis();
+    
+    if (now - lastButtonUpdate < 20) return; // 50Hz button polling
+    
+    buttonManager.update();
+    
+    // Map button presses to UI events
+    if (buttonManager.isPressed(BUTTON_A_PIN)) {
+        uiManager.handleEvent(1, 0); // Event type 1: Button A
+    }
+    
+    if (buttonManager.isPressed(BUTTON_B_PIN)) {
+        uiManager.handleEvent(2, 0); // Event type 2: Button B
+    }
+    
+    if (buttonManager.isPressed(BUTTON_C_PIN)) {
+        uiManager.handleEvent(3, 0); // Event type 3: Button C
+    }
+    
+    lastButtonUpdate = now;
+}
+
+void updateRingtonePlayer() {
+    ringtonePlayer.update();
+}
+
+void updateUI() {
+    // Update UI manager
+    uiManager.update();
+    
+    // Render UI (only if needed)
+    uiManager.render(display);
+}
+
+void updatePowerManagement() {
+    powerManager.update();
+    
+    // Handle low battery conditions
+    if (powerManager.getBatteryLevel() < 0.1f) {
+        // Show low battery warning
+        Serial.println("Warning: Low battery!");
     }
 }
 
-void handleButtonALongPress() {
-    // Force wake from deep sleep or enter deep sleep
-    if (powerManager.getCurrentState() == PowerState::DEEP_SLEEP) {
-        powerManager.forceWakeUp();
-    } else {
-        // Enter deep sleep
-        powerManager.enterDeepSleep();
+void updateMQTT() {
+    mqttClient.update();
+}
+
+void updateGame() {
+    if (beeperHeroGame) {
+        beeperHeroGame->update();
     }
 }
 
-void handleButtonBPress() {
-    AppState currentAppState = appStateManager.getCurrentState();
+// ========================================
+// Utility Functions
+// ========================================
+
+void handleScreenNavigation() {
+    // This function handles navigation between screens
+    // It would be called by button handlers or UI events
     
-    switch (currentAppState) {
-        case AppState::MENU:
-            uiManager.handleButtonB();
-            break;
-        case AppState::GAME:
-            beeperHeroGame.handleButtonB();
-            break;
-        default:
-            break;
-    }
+    static int currentScreenIndex = 0;
+    Screen* screens[] = { homeScreen, ringtonesScreen };
+    const int screenCount = sizeof(screens) / sizeof(screens[0]);
+    
+    // Example navigation logic
+    currentScreenIndex = (currentScreenIndex + 1) % screenCount;
+    uiManager.setScreen(screens[currentScreenIndex]);
 }
 
-void handleButtonBLongPress() {
-    // Custom long press action for button B
-    Serial.println("Button B long press");
-}
-
-void handleButtonCPress() {
-    AppState currentAppState = appStateManager.getCurrentState();
-    
-    switch (currentAppState) {
-        case AppState::MENU:
-            uiManager.handleButtonC();
-            break;
-        case AppState::GAME:
-            beeperHeroGame.handleButtonC();
-            break;
-        default:
-            break;
-    }
-}
-
-void handleButtonCLongPress() {
-    // Custom long press action for button C
-    Serial.println("Button C long press");
-}
-
-// MQTT message handler
-void handleMQTTMessage(const char* topic, const char* message) {
-    if (strcmp(topic, MQTT_TOPIC_SUBSCRIBE) == 0) {
-        // Debounce MQTT message handling to prevent rapid state changes
-        if (mqttMessageDebouncer.update(true)) {
-            // Parse alert message
-            Serial.printf("Received alert: %s\n", message);
-            
-            // Wake up if in sleep mode
-            if (powerManager.isInSleepMode()) {
-                powerManager.wakeUp();
-            }
-            
-            // Transition to alert state
-            appStateManager.setState(AppState::ALERT);
-            
-            // Start alert sequence
-            startAlertSequence(message);
-        }
-    }
-}
-
-void startAlertSequence(const char* message) {
-    // Play alert sound
-    ringtonePlayer.playRingtone("alert");
-    
-    // Flash LED
-    led.setBlinkPattern(200, 200);
-    
-    // Display alert on screen
-    uiManager.showAlert(message);
-    
-    // Return to idle state after alert
-    delay(5000); // Show alert for 5 seconds
-    appStateManager.setState(AppState::IDLE);
+void printSystemStatus() {
+    Serial.println("\n=== Alert TX-1 System Status ===");
+    Serial.printf("Uptime: %lu ms\n", millis());
+    Serial.printf("Free Heap: %d bytes\n", ESP.getFreeHeap());
+    Serial.printf("Battery Level: %.1f%%\n", powerManager.getBatteryLevel() * 100);
+    Serial.printf("Ringtones Available: %d\n", ringtonePlayer.getRingtoneCount());
+    Serial.printf("UI Framework: %s\n", UIFramework::VERSION);
+    Serial.println("================================\n");
 }
