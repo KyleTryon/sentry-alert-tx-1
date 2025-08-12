@@ -51,10 +51,7 @@ const int LED_PIN = 13;             // GPIO13 (D13) - External 3mm Green LED
     #define TFT_MISO 13  // SPI MISO (not used for display but defined for compatibility)
   #endif
   
-  // Display dimensions
-  const int DISPLAY_WIDTH = 240;
-  const int DISPLAY_HEIGHT = 135;
-  
+
   // Display library
   #define USE_ST7789_DISPLAY
   #define TFT_BACKLIGHT 45

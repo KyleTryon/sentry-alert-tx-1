@@ -1,324 +1,159 @@
 /**
- * Alert TX-1 - ESP32-S3 Reverse TFT Feather with UI Framework
+ * AlertTX-1 - Enhanced UI Framework Version
+ * Built on proven display initialization with themed Menu navigation
+ * A = Up, B = Down, C = Select
  * 
- * Enhanced version using the FlipperZero-inspired UI framework with
- * the proven Adafruit GFX + ST7789 library stack.
- * 
- * Features:
- * - Event-driven architecture
- * - Theme system with multiple color schemes
- * - Responsive button handling
- * - Status bar with battery, WiFi, and time
- * - Scrollable menu navigation
- * - Icon system integration
- * - 30+ FPS performance
- * 
- * Hardware: Adafruit ESP32-S3 Reverse TFT Feather
- * Display: Built-in 240x135 TFT (ST7789)
- * Buttons: Built-in A (GPIO0), B (GPIO1), C (GPIO2)
- * Audio: Passive buzzer on GPIO15
+ * Phase 1 Features:
+ * - Theme system with 4 predefined themes
+ * - Full-width menu items (220px vs 120px)
+ * - Larger menu items (30px vs 15px height)
+ * - Better spacing and visual design
  */
 
-#include <Arduino.h>
 #include <Adafruit_GFX.h>    // Core graphics library
 #include <Adafruit_ST7789.h> // Hardware-specific library for ST7789
-#include <time.h>
+#include <SPI.h>
 
-// Core configuration
-#include "src/config/settings.h"
-
-// Hardware components
-#include "src/hardware/LED.h"
-#include "src/hardware/Buzzer.h"
-
-// New UI Framework
-#include "src/ui/core/UIManager.h"
+// Enhanced UI Framework with Theme Support
+#include "src/ui/Menu.h"
 #include "src/ui/core/Theme.h"
-#include "src/ui/screens/MainMenuScreen.h"
 #include "src/hardware/ButtonManager.h"
 
-// ========================================
-// Hardware Configuration for ESP32-S3 Reverse TFT Feather
-// ========================================
-
-// Display pin definitions (from Adafruit documentation)
-#define TFT_CS        7
-#define TFT_RST       40 
-#define TFT_DC        39
-#define TFT_BACKLIGHT 45
-// Note: TFT_I2C_POWER and TFT_BACKLITE are predefined by the board variant
-
-// Initialize display
+// Use dedicated hardware SPI pins
 Adafruit_ST7789 tft = Adafruit_ST7789(TFT_CS, TFT_DC, TFT_RST);
 
-// Hardware managers
-LED statusLED;
-Buzzer buzzer;
+// UI Components
+Menu mainMenu(&tft);
 ButtonManager buttonManager;
 
-// UI Framework
-UIManager uiManager;
-MainMenuScreen mainMenuScreen;
-
-// ========================================
-// System State
-// ========================================
-bool systemInitialized = false;
-unsigned long bootTime = 0;
-int themeIndex = 0;
-const Theme* themes[] = { &THEME_AMBER, &THEME_MONOCHROME, &THEME_GREEN, &THEME_INVERTED };
-const int themeCount = 4;
-
-// ========================================
-// Setup Function
-// ========================================
-void setup() {
-    Serial.begin(115200);
-    bootTime = millis();
-    
-    Serial.println("=== Alert TX-1 UI Framework Demo ===");
-    Serial.println("Initializing system...");
-    
-    // Initialize display
-    initializeDisplay();
-    
-    // Show splash screen
-    showSplashScreen();
-    
-    // Initialize hardware
-    initializeHardware();
-    
-    // Initialize UI framework
-    initializeUI();
-    
-    systemInitialized = true;
-    unsigned long initTime = millis() - bootTime;
-    
-    Serial.printf("System initialized in %lu ms\n", initTime);
-    Serial.println("=== System Ready ===");
-    
-    // Play startup sound
-    // buzzer.playStartupMelody(); // TODO: Implement this method
+// Menu Actions (simple callbacks for now)
+void alertsAction() {
+  Serial.println("Alerts selected!");
+  // TODO: Navigate to alerts screen
 }
 
-// ========================================
-// Main Loop
-// ========================================
+void gamesAction() {
+  Serial.println("Games selected!");
+  // TODO: Navigate to games screen
+}
+
+void settingsAction() {
+  Serial.println("Settings selected!");
+  
+  // Demo: Theme switching on settings selection
+  static int currentTheme = 0;
+  const Theme* themes[] = {&THEME_DEFAULT, &THEME_TERMINAL, &THEME_AMBER, &THEME_HIGH_CONTRAST};
+  const char* themeNames[] = {"Default", "Terminal", "Amber", "High Contrast"};
+  
+  currentTheme = (currentTheme + 1) % 4;
+  ThemeManager::setTheme(themes[currentTheme]);
+  
+  Serial.print("Theme changed to: ");
+  Serial.println(themeNames[currentTheme]);
+  
+  // Redraw with new theme
+  drawUI();
+}
+
+// Menu Items (based on your working example)
+MenuItem menuItems[] = {
+  {"Alerts", 1, alertsAction},
+  {"Games", 2, gamesAction}, 
+  {"Settings", 3, settingsAction}
+};
+
+void setup(void) {
+  Serial.begin(115200);
+  delay(2000);
+  Serial.println(F("=== AlertTX-1 UI Framework ==="));
+
+  // STEP 1: turn on backlite FIRST (from Adafruit example)
+  Serial.println("1. Enabling backlight...");
+  pinMode(TFT_BACKLITE, OUTPUT);
+  digitalWrite(TFT_BACKLITE, HIGH);
+
+  // STEP 2: turn on the TFT / I2C power supply (CRITICAL!)
+  Serial.println("2. Enabling TFT power supply...");
+  pinMode(TFT_I2C_POWER, OUTPUT);
+  digitalWrite(TFT_I2C_POWER, HIGH);
+  delay(10);
+
+  // STEP 3: initialize TFT (exact sequence from Adafruit)
+  Serial.println("3. Initializing TFT...");
+  tft.init(135, 240); // Init ST7789 240x135
+  tft.setRotation(3); // Landscape
+  tft.fillScreen(ST77XX_BLACK);
+
+  Serial.println(F("4. Display initialized successfully!"));
+
+  // STEP 4: Initialize Theme System
+  Serial.println("5. Initializing theme system...");
+  ThemeManager::begin();  // Initialize with default theme
+  Serial.println("   Active theme: Default (FlipperZero style)");
+
+  // STEP 5: Initialize button manager
+  Serial.println("6. Initializing button manager...");
+  buttonManager.begin();
+
+  // STEP 6: Setup menu system
+  Serial.println("7. Setting up menu...");
+  mainMenu.setItems(menuItems, 3);  // 3 menu items
+  
+  // STEP 7: Draw initial UI
+  Serial.println("8. Drawing UI...");
+  drawUI();
+  
+  Serial.println("=== UI Framework Ready! ===");
+  Serial.println("A = Up, B = Down, C = Select");
+}
+
+void drawUI() {
+  // Clear screen with theme background
+  tft.fillScreen(ThemeManager::getBackground());
+  
+  // Title using theme colors
+  tft.setTextColor(ThemeManager::getPrimaryText());
+  tft.setTextSize(2);
+  tft.setCursor(30, 20);
+  tft.println("AlertTX-1");
+  
+  // Draw the enhanced menu (now with theme colors and larger items)
+  mainMenu.draw();
+}
+
 void loop() {
-    if (!systemInitialized) return;
+  // Update button manager
+  buttonManager.update();
+  
+  // Debug: Check raw button states periodically
+  static unsigned long lastDebug = 0;
+  if (millis() - lastDebug > 1000) {  // Every 1 second
+    bool rawA = (digitalRead(0) == LOW);   // GPIO0 - BOOT button
+    bool rawB = (digitalRead(1) == HIGH);  // GPIO1
+    bool rawC = (digitalRead(2) == HIGH);  // GPIO2
     
-    // Update UI framework (handles everything)
-    uiManager.update();
-    
-    // Update hardware status for status bar
-    updateSystemStatus();
-    
-    // Handle special button combinations
-    handleSpecialInputs();
-    
-    // Small delay to prevent overwhelming the system
-    delay(1);
-}
-
-// ========================================
-// Display Initialization
-// ========================================
-void initializeDisplay() {
-    Serial.println("Initializing display...");
-    
-    // CRITICAL: Enable TFT power supply first (REQUIRED for ESP32-S3 Reverse TFT Feather)
-    Serial.println("  - Enabling TFT power supply...");
-    pinMode(TFT_I2C_POWER, OUTPUT);
-    digitalWrite(TFT_I2C_POWER, HIGH);
-    delay(10);
-    
-    // Turn on backlight
-    Serial.println("  - Enabling backlight...");
-    pinMode(TFT_BACKLITE, OUTPUT);  // Note: TFT_BACKLITE not TFT_BACKLIGHT
-    digitalWrite(TFT_BACKLITE, HIGH);
-    
-    // Initialize display
-    Serial.println("  - Initializing ST7789 display...");
-    tft.init(135, 240);  // Initialize with the dimensions (portrait)
-    tft.setRotation(3);  // Rotate to landscape
-    
-    // Clear screen
-    tft.fillScreen(ST77XX_BLACK);
-    
-    Serial.println("Display initialized successfully");
-}
-
-// ========================================
-// Splash Screen
-// ========================================
-void showSplashScreen() {
-    Serial.println("Showing splash screen...");
-    
-    tft.fillScreen(ST77XX_BLACK);
-    
-    // Title
-    tft.setTextColor(ST77XX_YELLOW);
-    tft.setTextSize(2);
-    tft.setCursor(40, 40);
-    tft.println("AlertTX-1");
-    
-    // Subtitle
-    tft.setTextColor(ST77XX_WHITE);
-    tft.setTextSize(1);
-    tft.setCursor(60, 70);
-    tft.println("UI Framework Demo");
-    
-    // Version
-    tft.setCursor(80, 85);
-    tft.println("v1.0.0");
-    
-    // Instructions
-    tft.setCursor(20, 110);
-    tft.println("Press any button to continue");
-    
-    // Wait for button press or timeout
-    unsigned long startTime = millis();
-    bool buttonPressed = false;
-    
-    while ((millis() - startTime) < 3000 && !buttonPressed) {
-        // Simple button check
-        if (digitalRead(0) == LOW || digitalRead(1) == HIGH || digitalRead(2) == HIGH) {
-            buttonPressed = true;
-        }
-        delay(10);
+    if (rawA || rawB || rawC) {
+      Serial.printf("Raw buttons - A:%d B:%d C:%d\n", rawA, rawB, rawC);
     }
     
-    Serial.println("Splash screen complete");
-}
-
-// ========================================
-// Hardware Initialization
-// ========================================
-void initializeHardware() {
-    Serial.println("Initializing hardware...");
-    
-    // Initialize LED
-    statusLED.begin(13); // Red LED on pin 13
-    statusLED.on();
-    
-    // Initialize buzzer
-    buzzer.begin(15); // Buzzer on pin 15
-    
-    // Initialize buttons with UI event system
-    buttonManager.begin(uiManager.getEventSystem(), &statusLED, &buzzer);
-    
-    Serial.println("Hardware initialized successfully");
-}
-
-// ========================================
-// UI Framework Initialization
-// ========================================
-void initializeUI() {
-    Serial.println("Initializing UI framework...");
-    
-    // Initialize UI manager with the correct display type
-    uiManager.begin(&tft, &buttonManager);
-    
-    // Set default theme
-    uiManager.setTheme(THEME_AMBER);
-    
-    // Add main menu screen
-    uiManager.addScreen(&mainMenuScreen);
-    
-    Serial.println("UI framework initialized successfully");
-    
-    // Print UI stats
-    uiManager.printStats();
-}
-
-// ========================================
-// System Status Updates
-// ========================================
-void updateSystemStatus() {
-    static unsigned long lastUpdate = 0;
-    static int batteryLevel = 100;
-    
-    if (millis() - lastUpdate > 5000) { // Update every 5 seconds
-        // Simulate battery drain
-        batteryLevel--;
-        if (batteryLevel < 0) batteryLevel = 100;
-        
-        // Update main menu screen status
-        mainMenuScreen.updateBatteryLevel(batteryLevel);
-        mainMenuScreen.updateConnectivityStatus(false, false); // TODO: real status
-        
-        // Update time
-        unsigned long seconds = (millis() / 1000) % 86400;
-        int hours = seconds / 3600;
-        int minutes = (seconds % 3600) / 60;
-        int secs = seconds % 60;
-        mainMenuScreen.updateSystemTime(hours, minutes, secs);
-        
-        lastUpdate = millis();
-    }
-}
-
-// ========================================
-// Special Input Handling
-// ========================================
-void handleSpecialInputs() {
-    static unsigned long lastCheck = 0;
-    
-    if (millis() - lastCheck > 100) { // Check every 100ms
-        // Long press on Button A + Button B = Theme change
-        if (buttonManager.isPressed(ButtonManager::BUTTON_A) && 
-            buttonManager.isPressed(ButtonManager::BUTTON_B)) {
-            
-            static unsigned long lastThemeChange = 0;
-            if (millis() - lastThemeChange > 1000) { // Prevent rapid theme changes
-                // Cycle through themes
-                themeIndex = (themeIndex + 1) % themeCount;
-                uiManager.setTheme(*themes[themeIndex]);
-                
-                // Play theme change sound
-                buzzer.playTone(800, 50);
-                delay(50);
-                buzzer.playTone(1000, 50);
-                
-                Serial.printf("Theme changed to: %s\n", getThemeName(themeIndex));
-                lastThemeChange = millis();
-            }
-        }
-        
-        // Long press on Button C = Performance stats
-        if (buttonManager.isLongPressed(ButtonManager::BUTTON_C)) {
-            Serial.println("\n=== Performance Stats ===");
-            uiManager.printStats();
-            Serial.printf("Free heap: %u bytes\n", ESP.getFreeHeap());
-            Serial.printf("Uptime: %lu seconds\n", millis() / 1000);
-            Serial.println("========================\n");
-        }
-        
-        lastCheck = millis();
-    }
-}
-
-// ========================================
-// Debug and Utility Functions
-// ========================================
-void printSystemInfo() {
-    Serial.println("\n=== System Information ===");
-    Serial.printf("Chip Model: %s\n", ESP.getChipModel());
-    Serial.printf("Chip Revision: %d\n", ESP.getChipRevision());
-    Serial.printf("CPU Frequency: %d MHz\n", ESP.getCpuFreqMHz());
-    Serial.printf("Flash Size: %d MB\n", ESP.getFlashChipSize() / (1024 * 1024));
-    Serial.printf("Free Heap: %u bytes\n", ESP.getFreeHeap());
-    Serial.printf("Uptime: %lu seconds\n", millis() / 1000);
-    Serial.println("=========================\n");
-}
-
-// Theme names for debugging
-const char* getThemeName(int index) {
-    switch (index) {
-        case 0: return "FlipperZero Amber";
-        case 1: return "Monochrome";
-        case 2: return "Pip-Boy Green";
-        case 3: return "Inverted";
-        default: return "Unknown";
-    }
+    lastDebug = millis();
+  }
+  
+  // Handle menu navigation using ButtonManager
+  if (buttonManager.wasPressed(ButtonManager::BUTTON_A)) {  // Up
+    Serial.println("Up pressed - moving menu up");
+    mainMenu.moveUp();
+    drawUI();  // Redraw after navigation
+  }
+  
+  if (buttonManager.wasPressed(ButtonManager::BUTTON_B)) {  // Down
+    Serial.println("Down pressed - moving menu down");
+    mainMenu.moveDown();
+    drawUI();  // Redraw after navigation
+  }
+  
+  if (buttonManager.wasPressed(ButtonManager::BUTTON_C)) {  // Select
+    Serial.println("Select pressed - activating menu item");
+    mainMenu.select();  // This will call the appropriate action function
+  }
 }

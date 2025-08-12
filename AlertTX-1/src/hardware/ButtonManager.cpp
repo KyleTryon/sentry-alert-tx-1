@@ -1,8 +1,7 @@
 #include "ButtonManager.h"
 #include <esp_sleep.h>
 
-void ButtonManager::begin(EventSystem* es, LED* led, Buzzer* bz) {
-    eventSystem = es;
+void ButtonManager::begin(LED* led, Buzzer* bz) {
     statusLED = led;
     buzzer = bz;
     
@@ -52,10 +51,7 @@ void ButtonManager::update() {
                     btn.pressStartTime = currentTime;
                     btn.repeatCount = 0;
                     
-                    // Generate button press event
-                    if (eventSystem) {
-                        eventSystem->pushEvent(UIEventType::BUTTON_PRESS, i);
-                    }
+                    // Button press detected (no event system needed)
                     
                     // Provide feedback
                     provideFeedback(i);
@@ -65,10 +61,7 @@ void ButtonManager::update() {
                     btn.released = true;
                     btn.longPressTriggered = false;
                     
-                    // Generate button release event
-                    if (eventSystem) {
-                        eventSystem->pushEvent(UIEventType::BUTTON_RELEASE, i);
-                    }
+                    // Button release detected (no event system needed)
                 }
             }
         }
@@ -79,10 +72,7 @@ void ButtonManager::update() {
                 btn.longPressed = true;
                 btn.longPressTriggered = true;
                 
-                // Generate long press event
-                if (eventSystem) {
-                    eventSystem->pushEvent(UIEventType::BUTTON_LONG_PRESS, i);
-                }
+                // Long press detected (no event system needed)
             }
         }
         
@@ -92,10 +82,7 @@ void ButtonManager::update() {
                 btn.lastRepeatTime = currentTime;
                 btn.repeatCount++;
                 
-                // Generate repeat event
-                if (eventSystem) {
-                    eventSystem->pushEvent(UIEventType::BUTTON_PRESS, i);
-                }
+                // Button repeat detected (no event system needed)
             }
         }
         

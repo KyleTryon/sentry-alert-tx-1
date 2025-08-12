@@ -2,7 +2,6 @@
 #define BUTTON_MANAGER_H
 
 #include "../config/settings.h"
-#include "../ui/core/EventSystem.h"
 #include "LED.h"
 #include "Buzzer.h"
 #include <Arduino.h>
@@ -38,7 +37,6 @@ private:
     };
     
     ButtonState buttons[3];  // A, B, C
-    EventSystem* eventSystem;
     LED* statusLED;
     Buzzer* buzzer;
     
@@ -47,7 +45,7 @@ private:
     void setupWakeSources();
     
 public:
-    void begin(EventSystem* es, LED* led = nullptr, Buzzer* bz = nullptr);
+    void begin(LED* led = nullptr, Buzzer* bz = nullptr);
     void update();  // Call in main loop
     
     // Button state queries
