@@ -5,6 +5,7 @@
 // Generated from: chevron-right.png
 // Size: 16x16 pixels
 
+#include <Arduino.h>
 #include "Icon.h"
 
 // Icon dimensions
@@ -49,6 +50,6 @@ const uint16_t chevron_right_data[] PROGMEM = {
 
 // Icon struct instance
 extern const Icon chevron_right;
-const Icon chevron_right = { 0, 0, CHEVRON_RIGHT_WIDTH, CHEVRON_RIGHT_HEIGHT, chevron_right_data };
+extern const uint16_t* chevron_right_data_ptr;
 
 #endif // CHEVRON_RIGHT_H

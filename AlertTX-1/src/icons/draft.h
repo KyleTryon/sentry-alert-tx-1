@@ -5,6 +5,7 @@
 // Generated from: draft.png
 // Size: 16x16 pixels
 
+#include <Arduino.h>
 #include "Icon.h"
 
 // Icon dimensions
@@ -49,6 +50,6 @@ const uint16_t draft_data[] PROGMEM = {
 
 // Icon struct instance
 extern const Icon draft;
-const Icon draft = { 0, 0, DRAFT_WIDTH, DRAFT_HEIGHT, draft_data };
+extern const uint16_t* draft_data_ptr;
 
 #endif // DRAFT_H

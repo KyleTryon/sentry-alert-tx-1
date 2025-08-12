@@ -1,18 +1,19 @@
-#ifndef PAUSE_H
-#define PAUSE_H
+#ifndef PAUSE_ICON_H
+#define PAUSE_ICON_H
 
 // AUTO-GENERATED FILE - DO NOT MODIFY
-// Generated from: pause.png
+// Generated from: pause-icon.png
 // Size: 16x16 pixels
 
+#include <Arduino.h>
 #include "Icon.h"
 
 // Icon dimensions
-#define PAUSE_WIDTH 16
-#define PAUSE_HEIGHT 16
+#define PAUSE_ICON_WIDTH 16
+#define PAUSE_ICON_HEIGHT 16
 
 // Icon data in RGB565 format
-const uint16_t pause_data[] PROGMEM = {
+const uint16_t pause_icon_data[] PROGMEM = {
     0x0000, 0x0000, 0x0000, 0x0000, 0x0000, 0x0000, 0x0000, 0x0000, 
     0x0000, 0x0000, 0x0000, 0x0000, 0x0000, 0x0000, 0x0000, 0x0000, 
     0x0000, 0x0000, 0x0000, 0x0000, 0x0000, 0x0000, 0x0000, 0x0000, 
@@ -48,7 +49,7 @@ const uint16_t pause_data[] PROGMEM = {
 };
 
 // Icon struct instance
-extern const Icon pause;
-const Icon pause = { 0, 0, PAUSE_WIDTH, PAUSE_HEIGHT, pause_data };
+extern const Icon pause_icon;
+extern const uint16_t* pause_icon_data_ptr;
 
-#endif // PAUSE_H
+#endif // PAUSE_ICON_H

@@ -5,6 +5,7 @@
 // Generated from: music.png
 // Size: 16x16 pixels
 
+#include <Arduino.h>
 #include "Icon.h"
 
 // Icon dimensions
@@ -49,6 +50,6 @@ const uint16_t music_data[] PROGMEM = {
 
 // Icon struct instance
 extern const Icon music;
-const Icon music = { 0, 0, MUSIC_WIDTH, MUSIC_HEIGHT, music_data };
+extern const uint16_t* music_data_ptr;
 
 #endif // MUSIC_H

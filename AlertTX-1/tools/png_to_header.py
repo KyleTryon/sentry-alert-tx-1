@@ -80,6 +80,7 @@ def convert_png_to_header(png_path, output_dir, width=None, height=None):
 // Generated from: {png_path.name}
 // Size: {img_width}x{img_height} pixels
 
+#include <Arduino.h>
 #include "Icon.h"
 
 // Icon dimensions
@@ -104,7 +105,7 @@ const uint16_t {c_icon_name}_data[] PROGMEM = {{
 
 // Icon struct instance
 extern const Icon {c_icon_name};
-const Icon {c_icon_name} = {{ 0, 0, {c_icon_name.upper()}_WIDTH, {c_icon_name.upper()}_HEIGHT, {c_icon_name}_data }};
+extern const uint16_t* {c_icon_name}_data_ptr;
 
 #endif // {c_icon_name.upper()}_H
 """

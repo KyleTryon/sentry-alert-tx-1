@@ -5,6 +5,7 @@
 // Generated from: mail.png
 // Size: 16x16 pixels
 
+#include <Arduino.h>
 #include "Icon.h"
 
 // Icon dimensions
@@ -49,6 +50,6 @@ const uint16_t mail_data[] PROGMEM = {
 
 // Icon struct instance
 extern const Icon mail;
-const Icon mail = { 0, 0, MAIL_WIDTH, MAIL_HEIGHT, mail_data };
+extern const uint16_t* mail_data_ptr;
 
 #endif // MAIL_H

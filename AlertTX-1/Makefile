@@ -34,6 +34,7 @@ icons:
 	@echo "🎨 Converting PNG icons to header files..."
 	@mkdir -p src/icons
 	@python3 tools/png_to_header.py data/icons --output src/icons
+	@python3 tools/generate_icon_definitions.py
 	@echo "✅ Icon conversion complete"
 
 # Build Arduino project (always includes libraries, ringtones and icons)
@@ -59,7 +60,7 @@ monitor: detect-board
 	@echo "📺 Starting serial monitor..."
 	@PORT=$$(python3 tools/detect_board.py --port-only 2>/dev/null) && \
 	if [ -n "$$PORT" ]; then \
-		arduino-cli monitor --fqbn esp32:esp32:adafruit_feather_esp32s3_reversetft --port "$$PORT" --config baudrate=9600; \
+		arduino-cli monitor --fqbn esp32:esp32:adafruit_feather_esp32s3_reversetft --port "$$PORT" --config baudrate=115200; \
 	else \
 		echo "❌ No valid port found for monitoring"; \
 		exit 1; \
@@ -71,7 +72,7 @@ dev: upload
 	@echo "Press Ctrl+C to stop monitoring"
 	@PORT=$$(python3 tools/detect_board.py --port-only 2>/dev/null) && \
 	if [ -n "$$PORT" ]; then \
-		arduino-cli monitor --fqbn esp32:esp32:adafruit_feather_esp32s3_reversetft --port "$$PORT" --config baudrate=9600; \
+		arduino-cli monitor --fqbn esp32:esp32:adafruit_feather_esp32s3_reversetft --port "$$PORT" --config baudrate=115200; \
 	else \
 		echo "❌ No valid port found for monitoring"; \
 		exit 1; \

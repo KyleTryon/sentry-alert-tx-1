@@ -5,6 +5,7 @@
 // Generated from: volume-minus.png
 // Size: 16x16 pixels
 
+#include <Arduino.h>
 #include "Icon.h"
 
 // Icon dimensions
@@ -49,6 +50,6 @@ const uint16_t volume_minus_data[] PROGMEM = {
 
 // Icon struct instance
 extern const Icon volume_minus;
-const Icon volume_minus = { 0, 0, VOLUME_MINUS_WIDTH, VOLUME_MINUS_HEIGHT, volume_minus_data };
+extern const uint16_t* volume_minus_data_ptr;
 
 #endif // VOLUME_MINUS_H

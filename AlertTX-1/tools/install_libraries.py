@@ -28,18 +28,21 @@ def run_command(command):
 def install_libraries():
     """Install all required libraries."""
     libraries = [
-        "GFX Library for Arduino",
-        "AnyRtttl",
-        "PubSubClient"
+        ("Adafruit GFX Library", "Adafruit GFX Library"),
+        ("Adafruit ST7735 and ST7789 Library", "Adafruit ST7735 and ST7789 Library"),
+        ("Adafruit BusIO", "Adafruit BusIO"),
+        ("AnyRtttl", "AnyRtttl"),
+        ("PubSubClient", "PubSubClient")
     ]
     
     print("📚 Installing Alert TX-1 Arduino Libraries")
     print("=" * 50)
     
     success_count = 0
-    for library in libraries:
-        print(f"\n📦 Installing {library}...")
-        if run_command(f'arduino-cli lib install "{library}"'):
+    for name, cli_name in libraries:
+        print(f"\n📦 Installing {name}...")
+        
+        if run_command(f'arduino-cli lib install "{cli_name}"'):
             success_count += 1
     
     print(f"\n📊 Installation Summary:")
@@ -61,7 +64,9 @@ def check_libraries():
     if result.returncode == 0:
         installed_libraries = result.stdout.lower()
         required_libraries = [
-            "gfx library for arduino",
+            "adafruit gfx library",
+            "adafruit st7735 and st7789 library",
+            "adafruit busio",
             "anyrtttl",
             "pubsubclient"
         ]

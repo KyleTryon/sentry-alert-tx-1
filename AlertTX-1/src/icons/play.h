@@ -5,6 +5,7 @@
 // Generated from: play.png
 // Size: 16x16 pixels
 
+#include <Arduino.h>
 #include "Icon.h"
 
 // Icon dimensions
@@ -49,6 +50,6 @@ const uint16_t play_data[] PROGMEM = {
 
 // Icon struct instance
 extern const Icon play;
-const Icon play = { 0, 0, PLAY_WIDTH, PLAY_HEIGHT, play_data };
+extern const uint16_t* play_data_ptr;
 
 #endif // PLAY_H

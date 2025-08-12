@@ -5,6 +5,7 @@
 // Generated from: battery-full.png
 // Size: 16x16 pixels
 
+#include <Arduino.h>
 #include "Icon.h"
 
 // Icon dimensions
@@ -49,6 +50,6 @@ const uint16_t battery_full_data[] PROGMEM = {
 
 // Icon struct instance
 extern const Icon battery_full;
-const Icon battery_full = { 0, 0, BATTERY_FULL_WIDTH, BATTERY_FULL_HEIGHT, battery_full_data };
+extern const uint16_t* battery_full_data_ptr;
 
 #endif // BATTERY_FULL_H

@@ -5,6 +5,7 @@
 // Generated from: alert.png
 // Size: 16x16 pixels
 
+#include <Arduino.h>
 #include "Icon.h"
 
 // Icon dimensions
@@ -49,6 +50,6 @@ const uint16_t alert_data[] PROGMEM = {
 
 // Icon struct instance
 extern const Icon alert;
-const Icon alert = { 0, 0, ALERT_WIDTH, ALERT_HEIGHT, alert_data };
+extern const uint16_t* alert_data_ptr;
 
 #endif // ALERT_H

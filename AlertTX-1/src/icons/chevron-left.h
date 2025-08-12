@@ -5,6 +5,7 @@
 // Generated from: chevron-left.png
 // Size: 16x16 pixels
 
+#include <Arduino.h>
 #include "Icon.h"
 
 // Icon dimensions
@@ -49,6 +50,6 @@ const uint16_t chevron_left_data[] PROGMEM = {
 
 // Icon struct instance
 extern const Icon chevron_left;
-const Icon chevron_left = { 0, 0, CHEVRON_LEFT_WIDTH, CHEVRON_LEFT_HEIGHT, chevron_left_data };
+extern const uint16_t* chevron_left_data_ptr;
 
 #endif // CHEVRON_LEFT_H

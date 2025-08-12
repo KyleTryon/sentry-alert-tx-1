@@ -5,6 +5,7 @@
 // Generated from: cellular-signal-off.png
 // Size: 16x16 pixels
 
+#include <Arduino.h>
 #include "Icon.h"
 
 // Icon dimensions
@@ -49,6 +50,6 @@ const uint16_t cellular_signal_off_data[] PROGMEM = {
 
 // Icon struct instance
 extern const Icon cellular_signal_off;
-const Icon cellular_signal_off = { 0, 0, CELLULAR_SIGNAL_OFF_WIDTH, CELLULAR_SIGNAL_OFF_HEIGHT, cellular_signal_off_data };
+extern const uint16_t* cellular_signal_off_data_ptr;
 
 #endif // CELLULAR_SIGNAL_OFF_H

@@ -5,6 +5,7 @@
 // Generated from: chevron-down.png
 // Size: 16x16 pixels
 
+#include <Arduino.h>
 #include "Icon.h"
 
 // Icon dimensions
@@ -49,6 +50,6 @@ const uint16_t chevron_down_data[] PROGMEM = {
 
 // Icon struct instance
 extern const Icon chevron_down;
-const Icon chevron_down = { 0, 0, CHEVRON_DOWN_WIDTH, CHEVRON_DOWN_HEIGHT, chevron_down_data };
+extern const uint16_t* chevron_down_data_ptr;
 
 #endif // CHEVRON_DOWN_H

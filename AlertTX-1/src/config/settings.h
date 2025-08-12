@@ -40,6 +40,17 @@ const int LED_PIN = 13;             // GPIO13 (D13) - External 3mm Green LED
   // TFT Display Pins are already defined by the board variant:
   // TFT_CS = 42, TFT_DC = 40, TFT_RST = 41, TFT_BACKLIGHT = 45
   
+  // Add missing SPI pins for Arduino_GFX
+  #ifndef TFT_SCLK
+    #define TFT_SCLK 12  // SPI Clock
+  #endif
+  #ifndef TFT_MOSI
+    #define TFT_MOSI 11  // SPI MOSI
+  #endif
+  #ifndef TFT_MISO
+    #define TFT_MISO 13  // SPI MISO (not used for display but defined for compatibility)
+  #endif
+  
   // Display dimensions
   const int DISPLAY_WIDTH = 240;
   const int DISPLAY_HEIGHT = 135;

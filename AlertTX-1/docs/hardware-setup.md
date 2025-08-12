@@ -77,6 +77,43 @@ const int BUZZER_PIN = 15;  // GPIO15 (A3) - Passive buzzer
 const int LED_PIN = 13;     // GPIO13 (D13) - External 3mm Green LED
 ```
 
+## 🖥️ Display Troubleshooting
+
+### ESP32-S3 Reverse TFT Feather Display Issues
+
+**Problem: Screen shows only backlight, no graphics**
+
+This is a common issue with the ESP32-S3 Reverse TFT Feather. The display requires proper power initialization.
+
+**Solution:**
+```cpp
+// CRITICAL: Must enable TFT power supply first
+pinMode(TFT_I2C_POWER, OUTPUT);
+digitalWrite(TFT_I2C_POWER, HIGH);
+delay(10);
+
+// Then enable backlight
+pinMode(TFT_BACKLITE, OUTPUT);  // Note: TFT_BACKLITE not TFT_BACKLIGHT
+digitalWrite(TFT_BACKLITE, HIGH);
+
+// Finally initialize display
+tft.init(135, 240);
+tft.setRotation(3);
+```
+
+**Key Points:**
+- `TFT_I2C_POWER` **MUST** be enabled before display initialization
+- Use `TFT_BACKLITE` (predefined by board) not `TFT_BACKLIGHT`
+- Both pins are automatically defined by the ESP32-S3 Reverse TFT Feather board variant
+- This initialization sequence is required for both the display and STEMMA QT power
+
+**Verification:**
+- Working display shows colors and graphics immediately
+- Failed display shows only a bright backlight
+- Test with the official Adafruit graphics test examples
+
+---
+
 ## Assembly Instructions
 
 ### Step 1: Prepare the Main Board
