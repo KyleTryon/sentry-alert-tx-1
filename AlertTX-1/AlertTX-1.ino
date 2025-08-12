@@ -1,71 +1,42 @@
 /**
- * AlertTX-1 - Enhanced UI Framework Version
- * Built on proven display initialization with themed Menu navigation
+ * AlertTX-1 - Phase 2 Component-Based UI Framework
+ * Built on proven display initialization with component architecture
  * A = Up, B = Down, C = Select
  * 
- * Phase 1 Features:
+ * Phase 2 Features:
+ * - Component-based architecture with Screen management
  * - Theme system with 4 predefined themes
- * - Full-width menu items (220px vs 120px)
- * - Larger menu items (30px vs 15px height)
- * - Better spacing and visual design
+ * - Full-width menu items optimized for button navigation
+ * - Screen navigation with ScreenManager
+ * - Modern C++ callbacks and template-based components
  */
 
 #include <Adafruit_GFX.h>    // Core graphics library
 #include <Adafruit_ST7789.h> // Hardware-specific library for ST7789
 #include <SPI.h>
 
-// Enhanced UI Framework with Theme Support
-#include "src/ui/Menu.h"
+// Phase 2 Component-Based UI Framework
 #include "src/ui/core/Theme.h"
+#include "src/ui/core/Component.h"
+#include "src/ui/core/Screen.h"
+#include "src/ui/core/ScreenManager.h"
+#include "src/ui/components/MenuItem.h"
+#include "src/ui/components/MenuContainer.h"
+#include "src/ui/screens/MainMenuScreen.h"
 #include "src/hardware/ButtonManager.h"
 
 // Use dedicated hardware SPI pins
 Adafruit_ST7789 tft = Adafruit_ST7789(TFT_CS, TFT_DC, TFT_RST);
 
-// UI Components
-Menu mainMenu(&tft);
+// Phase 2 Component-Based UI Framework
+ScreenManager* screenManager;
+MainMenuScreen* mainMenuScreen;
 ButtonManager buttonManager;
-
-// Menu Actions (simple callbacks for now)
-void alertsAction() {
-  Serial.println("Alerts selected!");
-  // TODO: Navigate to alerts screen
-}
-
-void gamesAction() {
-  Serial.println("Games selected!");
-  // TODO: Navigate to games screen
-}
-
-void settingsAction() {
-  Serial.println("Settings selected!");
-  
-  // Demo: Theme switching on settings selection
-  static int currentTheme = 0;
-  const Theme* themes[] = {&THEME_DEFAULT, &THEME_TERMINAL, &THEME_AMBER, &THEME_HIGH_CONTRAST};
-  const char* themeNames[] = {"Default", "Terminal", "Amber", "High Contrast"};
-  
-  currentTheme = (currentTheme + 1) % 4;
-  ThemeManager::setTheme(themes[currentTheme]);
-  
-  Serial.print("Theme changed to: ");
-  Serial.println(themeNames[currentTheme]);
-  
-  // Redraw with new theme
-  drawUI();
-}
-
-// Menu Items (based on your working example)
-MenuItem menuItems[] = {
-  {"Alerts", 1, alertsAction},
-  {"Games", 2, gamesAction}, 
-  {"Settings", 3, settingsAction}
-};
 
 void setup(void) {
   Serial.begin(115200);
   delay(2000);
-  Serial.println(F("=== AlertTX-1 UI Framework ==="));
+  Serial.println(F("=== AlertTX-1 Phase 2 Component Framework ==="));
 
   // STEP 1: turn on backlite FIRST (from Adafruit example)
   Serial.println("1. Enabling backlight...");
@@ -95,65 +66,52 @@ void setup(void) {
   Serial.println("6. Initializing button manager...");
   buttonManager.begin();
 
-  // STEP 6: Setup menu system
-  Serial.println("7. Setting up menu...");
-  mainMenu.setItems(menuItems, 3);  // 3 menu items
+  // STEP 6: Initialize Phase 2 Component Framework
+  Serial.println("7. Initializing component framework...");
+  screenManager = new ScreenManager(&tft);
+  mainMenuScreen = new MainMenuScreen(&tft);
   
-  // STEP 7: Draw initial UI
-  Serial.println("8. Drawing UI...");
-  drawUI();
+  // STEP 7: Start with main menu screen
+  Serial.println("8. Setting up main menu screen...");
+  screenManager->pushScreen(mainMenuScreen);
   
-  Serial.println("=== UI Framework Ready! ===");
+  Serial.println("=== Phase 2 Component Framework Ready! ===");
   Serial.println("A = Up, B = Down, C = Select");
-}
-
-void drawUI() {
-  // Clear screen with theme background
-  tft.fillScreen(ThemeManager::getBackground());
-  
-  // Title using theme colors
-  tft.setTextColor(ThemeManager::getPrimaryText());
-  tft.setTextSize(2);
-  tft.setCursor(30, 20);
-  tft.println("AlertTX-1");
-  
-  // Draw the enhanced menu (now with theme colors and larger items)
-  mainMenu.draw();
+  Serial.println("Settings cycles through themes");
 }
 
 void loop() {
   // Update button manager
   buttonManager.update();
   
-  // Debug: Check raw button states periodically
-  static unsigned long lastDebug = 0;
-  if (millis() - lastDebug > 1000) {  // Every 1 second
-    bool rawA = (digitalRead(0) == LOW);   // GPIO0 - BOOT button
-    bool rawB = (digitalRead(1) == HIGH);  // GPIO1
-    bool rawC = (digitalRead(2) == HIGH);  // GPIO2
-    
-    if (rawA || rawB || rawC) {
-      Serial.printf("Raw buttons - A:%d B:%d C:%d\n", rawA, rawB, rawC);
-    }
-    
-    lastDebug = millis();
-  }
-  
-  // Handle menu navigation using ButtonManager
+  // Handle button presses and route to ScreenManager
   if (buttonManager.wasPressed(ButtonManager::BUTTON_A)) {  // Up
-    Serial.println("Up pressed - moving menu up");
-    mainMenu.moveUp();
-    drawUI();  // Redraw after navigation
+    Serial.println("Up pressed - routing to screen manager");
+    screenManager->handleButtonPress(ButtonInput::BUTTON_A);
   }
   
   if (buttonManager.wasPressed(ButtonManager::BUTTON_B)) {  // Down
-    Serial.println("Down pressed - moving menu down");
-    mainMenu.moveDown();
-    drawUI();  // Redraw after navigation
+    Serial.println("Down pressed - routing to screen manager");
+    screenManager->handleButtonPress(ButtonInput::BUTTON_B);
   }
   
   if (buttonManager.wasPressed(ButtonManager::BUTTON_C)) {  // Select
-    Serial.println("Select pressed - activating menu item");
-    mainMenu.select();  // This will call the appropriate action function
+    Serial.println("Select pressed - routing to screen manager");
+    screenManager->handleButtonPress(ButtonInput::BUTTON_C);
+  }
+  
+  // Update and draw the Phase 2 component framework
+  screenManager->update();
+  screenManager->draw();
+  
+  // Debug: Performance monitoring
+  static unsigned long lastDebug = 0;
+  if (millis() - lastDebug > 10000) {  // Every 10 seconds
+    Serial.println("=== Performance Stats ===");
+    screenManager->printPerformanceStats();
+    screenManager->printStackState();
+    Serial.printf("Free heap: %u bytes\n", ESP.getFreeHeap());
+    Serial.println("=========================");
+    lastDebug = millis();
   }
 }
