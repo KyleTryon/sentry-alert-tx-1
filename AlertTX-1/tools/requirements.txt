@@ -1,0 +1,5 @@
+# Python dependencies for Alert TX-1 build tools
+# Install with: pip3 install -r requirements.txt
+
+# Image processing for PNG to header conversion
+Pillow>=9.0.0

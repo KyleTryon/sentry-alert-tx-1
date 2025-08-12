@@ -2,7 +2,7 @@
 #define RINGTONE_PLAYER_H
 
 #include <Arduino.h>
-#include "../../lib/AnyRtttl/src/anyrtttl.h"
+#include <anyrtttl.h>
 #include "ringtone_data.h"  // Auto-generated ringtone data
 
 // Note information structure for BeeperHero game integration
@@ -48,7 +48,7 @@ public:
     void playRingtone(const char* rtttl);  // Legacy text format support
     void playRingtoneByName(const char* name);  // Play by ringtone name (binary format)
     void playRingtoneByIndex(int index);        // Play by index (binary format)
-    void playRingtoneBinary(const unsigned char* binary_data, int length);  // Play binary format
+    void playRingtoneFromMemory(const char* rtttl);  // Play from program memory
     void stop();
     void pause();
     void resume();

@@ -1,4 +1,11 @@
 #include "MQTTClient.h"
+#include "../config/settings.h"
+
+// Default constructor for simple usage
+MQTTClient::MQTTClient() : _client(_espClient) {
+  // Set a default null callback for simple usage
+  _client.setCallback(nullptr);
+}
 
 MQTTClient::MQTTClient(void (*callback)(char*, uint8_t*, unsigned int)) : _client(_espClient) {
   _client.setCallback(callback);
@@ -25,6 +32,11 @@ void MQTTClient::begin(const char* ssid, const char* password, const char* mqttB
   _client.setServer(_mqttBroker, _mqttPort);
 }
 
+// Simple begin method using settings.h constants
+void MQTTClient::begin() {
+  begin(WIFI_SSID, WIFI_PASSWORD, MQTT_BROKER, MQTT_PORT, MQTT_CLIENT_ID);
+}
+
 void MQTTClient::loop() {
   if (!_client.connected()) {
     reconnect();
@@ -38,6 +50,11 @@ bool MQTTClient::publish(const char* topic, const char* payload) {
 
 void MQTTClient::subscribe(const char* topic) {
   _client.subscribe(topic);
+}
+
+// Alias for loop() for consistency with other managers
+void MQTTClient::update() {
+  loop();
 }
 
 void MQTTClient::reconnect() {

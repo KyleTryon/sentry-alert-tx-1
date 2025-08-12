@@ -24,6 +24,7 @@ This document provides a comprehensive reference for the pin assignments used in
 | **Button B** | GPIO1 | D1 | Built-in D1 button | Physical button on board |
 | **Button C** | GPIO2 | D2 | Built-in D2 button | Physical button on board |
 | **Buzzer** | GPIO15 | A3 | Passive piezo buzzer | Positive terminal |
+| **LED** | GPIO13 | D13 | External 3mm Green LED | Anode via 220Ω resistor |
 
 ### Built-in Features (No External Wiring Required)
 
@@ -56,10 +57,11 @@ This document provides a comprehensive reference for the pin assignments used in
 The Alert TX-1 uses the three built-in buttons on the board, labeled A, B, and C.
 
 ```cpp
-// Button configuration in settings.h
+// Button and LED configuration in settings.h
 const int BUTTON_A_PIN = 0;        // GPIO0 - Built-in D0/BOOT button (Button A)
 const int BUTTON_B_PIN = 1;        // GPIO1 - Built-in D1 button (Button B)
 const int BUTTON_C_PIN = 2;        // GPIO2 - Built-in D2 button (Button C)
+const int LED_PIN = 13;            // GPIO13 - External 3mm Green LED
 ```
 
 **Built-in Buttons:**
@@ -79,16 +81,22 @@ const int BUTTON_C_PIN = 2;        // GPIO2 - Built-in D2 button (Button C)
 - Resets the device when pressed
 - Used for bootloader entry (hold D0 + press Reset)
 
-### Audio Pin
+### Audio and LED Pins
 
 ```cpp
 const int BUZZER_PIN = 15;  // GPIO15 (A3)
+const int LED_PIN = 13;     // GPIO13 (D13)
 ```
 
-**Wiring:**
+**Buzzer Wiring:**
 - Connect buzzer positive (+) terminal to GPIO15
 - Connect buzzer negative (-) terminal to GND
 - Use PWM output for tone generation
+
+**LED Wiring:**
+- Connect LED anode (long leg) to GPIO13 through a 220Ω resistor
+- Connect LED cathode (short leg) to GND
+- LED specifications: 3mm Green LED, ~2.0V forward voltage, 20mA forward current
 
 ### TFT Display
 
@@ -141,6 +149,7 @@ This difference is important for deep sleep wake-up functionality and proper but
 | GPIO4 | SCL | I2C clock line (STEMMA QT) |
 | GPIO7 | TFT_I2C_POWER | Display and STEMMA QT power control |
 | GPIO8 | A5 | ADC input |
+| GPIO13 | D13 | External LED (used by project) |
 | GPIO15 | A3 | Buzzer (used by project) |
 | GPIO21 | NEOPIXEL_POWER | NeoPixel power control |
 | GPIO33 | NEOPIXEL | RGB LED |
@@ -195,8 +204,13 @@ Adafruit ESP32-S3 Reverse TFT Feather
 │  └─────────┘    │                             │ │
 │                 │                             │ │
 │  ┌─────────┐    │                             │ │
+│  │ 3mm LED │────┤ GPIO13 (D13) - External LED │ │
+│  │ (Green) │    │ (via 220Ω resistor)         │ │
+│  └─────────┘    │                             │ │
+│                 │                             │ │
+│  ┌─────────┐    │                             │ │
 │  │NeoPixel │────┤ GPIO33 - RGB Status LED     │ │
-│  │ (RGB)   │    │                             │ │
+│  │ (RGB)   │    │ (built-in)                  │ │
 │  └─────────┘    │                             │ │
 │                 │                             │ │
 │  ┌─────────┐    │                             │ │
@@ -226,8 +240,9 @@ const int BUTTON_A_PIN = 0;         // Button A, pulled HIGH, goes LOW when pres
 const int BUTTON_B_PIN = 1;         // Button B, pulled LOW, goes HIGH when pressed
 const int BUTTON_C_PIN = 2;         // Button C, pulled LOW, goes HIGH when pressed
 
-// Audio
+// Audio and LED
 const int BUZZER_PIN = 15;
+const int LED_PIN = 13;              // External 3mm Green LED via 220Ω resistor
 ```
 
 ## Troubleshooting
@@ -269,6 +284,12 @@ void testPins() {
   // Test buzzer
   pinMode(BUZZER_PIN, OUTPUT);
   tone(BUZZER_PIN, 1000, 100); // 1kHz for 100ms
+  
+  // Test LED
+  pinMode(LED_PIN, OUTPUT);
+  digitalWrite(LED_PIN, HIGH); // Turn on LED
+  delay(500);
+  digitalWrite(LED_PIN, LOW);  // Turn off LED
   
   // Test NeoPixel (Arduino example)
   // #include <Adafruit_NeoPixel.h>

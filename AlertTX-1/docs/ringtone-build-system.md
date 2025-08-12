@@ -16,12 +16,15 @@ data/ringtones/
 └── ...
 ```
 
-### 2. Automated Generation
+### 2. Automated Generation with Caching
 The `tools/generate_ringtone_data.py` script:
 - Scans the `data/ringtones/` directory
-- Reads all `.txt` files
+- **Checks cache** using SHA-256 file hashes
+- **Only regenerates** when files have changed
+- Reads all `.txt` files (if cache invalid)
 - Extracts RTTTL names and data
 - Generates `src/ringtones/ringtone_data.h` with embedded C++ arrays
+- **Updates cache** for future builds
 
 ### 3. Compile-Time Integration
 The generated header file contains:
@@ -39,7 +42,7 @@ The generated header file contains:
    echo "MySong:d=4,o=5,b=100:c,c,g,g,a,a,g,f,f,e,e,d,d,c" > data/ringtones/my_song.rtttl.txt
    ```
 
-2. **Regenerate data** (automatic with build):
+2. **Regenerate data** (automatic with build, uses caching):
    ```bash
    make ringtones
    # or
@@ -62,16 +65,19 @@ The generated header file contains:
 ### Build Commands
 
 ```bash
-# Generate ringtone data only
+# Generate ringtone data only (with caching)
 make ringtones
 
-# Build project (includes ringtone generation)
+# Build project (includes ringtone generation with caching)
 make build
 
 # Upload to device (includes build)
 make upload
 
-# Clean generated files
+# Dev mode: upload and start monitor (recommended for development)
+make dev
+
+# Clean generated files and cache
 make clean
 
 # Show all commands
@@ -114,6 +120,86 @@ inline int getRingtoneLength(const char* name);
 inline int getRingtoneLength(int index);
 inline const char* getRingtoneName(int index);
 inline int findRingtoneIndex(const char* name);
+```
+
+## Caching System
+
+### How Caching Works
+
+The ringtone generation system includes intelligent caching to avoid unnecessary regeneration:
+
+1. **Hash-Based Detection**: Each RTTTL file is hashed using SHA-256
+2. **Cache Storage**: File hashes and metadata stored in `.ringtone_cache`
+3. **Change Detection**: Only regenerates when files change or are added/removed
+4. **Performance**: Dramatically faster rebuilds when no changes detected
+5. **Relative Paths**: All paths stored as relative to project root for portability
+
+### Cache Files
+
+```
+AlertTX-1/
+├── .ringtone_cache          # Cache file with file hashes and metadata (ignored by git)
+├── src/ringtones/
+│   └── ringtone_data.h      # Generated header file (ignored by git)
+└── data/ringtones/          # Source RTTTL files
+    ├── mario.rtttl.txt
+    ├── digimon.rtttl.txt
+    └── ...
+```
+
+**Note**: Both `.ringtone_cache` and `src/ringtones/ringtone_data.h` are excluded from version control via `.gitignore` to keep the repository clean.
+
+### Cache Structure
+
+The `.ringtone_cache` file contains:
+```json
+{
+  "file_hashes": {
+    "mario.rtttl.txt": "a6bcc7651ef8aa9faf18a718604b9329e0af41b86e2136a89189fbcc41781813",
+    "digimon.rtttl.txt": "97ef26bf0271ca20e0b5dfcff49bc2c9477d833cb850b40d7eed4fd41d012baf"
+  },
+  "ringtone_count": 14,
+  "output_file": "src/ringtones/ringtone_data.h",
+  "ringtone_dir": "data/ringtones",
+  "timestamp": "2025-08-09T15:32:07.278030",
+  "version": "1.0"
+}
+```
+
+### Cache Behavior
+
+```bash
+# First run - generates cache and ringtone data
+make ringtones
+# Output: 🔧 Checking ringtone data...
+#         🔄 Regenerating ringtone data (cache invalid or missing)
+#         💾 Cache updated: .ringtone_cache
+
+# Second run - uses cache (no changes)
+make ringtones
+# Output: 🔧 Checking ringtone data...
+#         ✅ Cache is valid - no changes detected
+#         Using cached ringtone data: src/ringtones/ringtone_data.h
+
+# After adding new ringtone - detects changes
+echo "NewSong:d=4,o=5,b=100:c,c,g,g" > data/ringtones/new_song.rtttl.txt
+make ringtones
+# Output: 🔧 Checking ringtone data...
+#         New file detected: new_song.rtttl.txt
+#         🔄 Changes detected in files: new_song.rtttl.txt
+#         💾 Cache updated: .ringtone_cache
+```
+
+### Manual Cache Management
+
+```bash
+# Clear cache and force regeneration
+make clean        # Removes cache and generated files
+make ringtones    # Regenerates everything
+
+# Or manually remove cache
+rm .ringtone_cache
+make ringtones    # Will regenerate due to missing cache
 ```
 
 ## Benefits
@@ -197,88 +283,3 @@ void RingtonesScreen::handleInput(Button button) {
     }
 }
 ```
-
-### BeeperHero Game Integration
-```cpp
-void BeeperHeroGame::loadSong(const char* songName) {
-    const char* rtttl = getRingtoneData(songName);
-    if (rtttl) {
-        // Load song for rhythm game
-        parseRtttlForGame(rtttl);
-    }
-}
-```
-
-## File Naming Conventions
-
-### RTTTL Files
-- Use descriptive names: `mario.rtttl.txt`, `digimon.rtttl.txt`
-- Avoid spaces and special characters
-- Include `.rtttl.txt` extension for clarity
-
-### Generated Identifiers
-The script automatically converts filenames to valid C++ identifiers:
-- `mario.rtttl.txt` → `mario_rtttl`
-- `barbie_girl.txt` → `barbie_girl`
-- `1000_miles.txt` → `ringtone_1000_miles` (starts with number)
-
-## Troubleshooting
-
-### Common Issues
-
-1. **"Ringtone not found" error**
-   - Check the ringtone name matches exactly
-   - Use `getRingtoneName()` to see available names
-   - Verify the RTTTL file was processed correctly
-
-2. **Build errors after adding ringtones**
-   - Run `make clean` then `make ringtones`
-   - Check RTTTL syntax in the source file
-   - Ensure file is readable
-
-3. **Memory issues**
-   - Monitor heap usage with `ESP.getFreeHeap()`
-   - Consider removing unused ringtones
-   - Check for memory leaks in playback code
-
-### Debug Commands
-
-```cpp
-// List all available ringtones
-void listRingtones() {
-    int count = ringtonePlayer.getRingtoneCount();
-    Serial.printf("Available ringtones (%d):\n", count);
-    for (int i = 0; i < count; i++) {
-        Serial.printf("  %d: %s\n", i, ringtonePlayer.getRingtoneName(i));
-    }
-}
-
-// Test ringtone playback
-void testRingtone(const char* name) {
-    Serial.printf("Testing ringtone: %s\n", name);
-    ringtonePlayer.playRingtoneByName(name);
-}
-```
-
-## Future Enhancements
-
-### Planned Features
-1. **Binary RTTTL format**: Even more memory efficient
-2. **Compression**: Reduce memory usage further
-3. **Categories**: Organize ringtones by type/genre
-4. **Metadata**: Store additional info (duration, difficulty, etc.)
-
-### Community Contributions
-- Add your favorite RTTTL files to `data/ringtones/`
-- Share custom ringtone collections
-- Contribute to the build system improvements
-
-## Conclusion
-
-The automated RTTTL build system provides:
-- **Easy management** of ringtone files
-- **Optimal performance** for embedded systems
-- **Reliable operation** without file system dependencies
-- **Developer-friendly workflow** for adding new content
-
-This system transforms the Alert TX-1 into a capable audio platform while maintaining the simplicity of plain text RTTTL files for content creation. 

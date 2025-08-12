@@ -3,20 +3,29 @@
 RTTTL Data Generator for Alert TX-1
 
 This script scans the data/ringtones/ directory and generates a C++ header file
-containing all RTTTL ringtone data as both text and binary formats. The binary
-format is 50-70% smaller than text RTTTL, providing significant memory savings.
+containing all RTTTL ringtone data as binary format only. The binary format is 
+50-70% smaller than text RTTTL, providing significant memory savings.
+
+Features:
+- Automatic caching: Only regenerates when RTTTL files change
+- Binary format only: Maximum memory efficiency
+- Hash-based detection: Fast change detection
 
 Usage:
     python3 tools/generate_ringtone_data.py
 
 Output:
     src/ringtones/ringtone_data.h - Generated header file with embedded RTTTL data
+    .ringtone_cache - Cache file for change detection
 """
 
 import os
 import re
 import sys
+import hashlib
+import json
 from pathlib import Path
+from datetime import datetime
 
 def sanitize_name(filename):
     """Convert filename to valid C++ identifier"""
@@ -32,6 +41,81 @@ def extract_rtttl_name(content):
     if ':' in content:
         return content.split(':')[0].strip()
     return "Unknown"
+
+def calculate_file_hash(file_path):
+    """Calculate SHA-256 hash of a file"""
+    hash_sha256 = hashlib.sha256()
+    with open(file_path, 'rb') as f:
+        for chunk in iter(lambda: f.read(4096), b""):
+            hash_sha256.update(chunk)
+    return hash_sha256.hexdigest()
+
+def load_cache(cache_file):
+    """Load cache from file"""
+    if cache_file.exists():
+        try:
+            with open(cache_file, 'r') as f:
+                return json.load(f)
+        except (json.JSONDecodeError, FileNotFoundError):
+            pass
+    return {}
+
+def save_cache(cache_file, cache_data):
+    """Save cache to file"""
+    cache_data['timestamp'] = datetime.now().isoformat()
+    cache_data['version'] = '1.0'
+    with open(cache_file, 'w') as f:
+        json.dump(cache_data, f, indent=2)
+
+def check_cache_validity(ringtone_dir, cache_data):
+    """
+    Check if cache is still valid by comparing file hashes
+    Returns (is_valid, changed_files, current_hashes)
+    """
+    current_hashes = {}
+    changed_files = []
+    
+    # Get all RTTTL files
+    ringtone_files = list(ringtone_dir.glob("*.rtttl.txt"))
+    
+    if not ringtone_files:
+        print("  No RTTTL files found in directory")
+        return False, [], {}
+    
+    # Check all RTTTL files
+    for file_path in ringtone_files:
+        file_hash = calculate_file_hash(file_path)
+        current_hashes[file_path.name] = file_hash
+        
+        # Check if file has changed or is new
+        cached_hash = cache_data.get('file_hashes', {}).get(file_path.name)
+        if cached_hash != file_hash:
+            changed_files.append(file_path.name)
+            if cached_hash is None:
+                print(f"  New file detected: {file_path.name}")
+            else:
+                print(f"  File changed: {file_path.name}")
+    
+    # Check for deleted files
+    cached_files = set(cache_data.get('file_hashes', {}).keys())
+    current_files = set(current_hashes.keys())
+    deleted_files = cached_files - current_files
+    
+    if deleted_files:
+        changed_files.extend(deleted_files)
+        print(f"  Detected deleted files: {', '.join(deleted_files)}")
+    
+    # Cache is valid if no changes detected and we have files
+    is_valid = len(changed_files) == 0 and len(current_hashes) > 0
+    
+    return is_valid, changed_files, current_hashes
+
+def get_relative_path(file_path, base_path):
+    """Convert absolute path to relative path from base"""
+    try:
+        return str(file_path.relative_to(base_path))
+    except ValueError:
+        return str(file_path)
 
 def parse_rtttl_to_binary(rtttl_text):
     """
@@ -265,13 +349,14 @@ inline int findRingtoneIndex(const char* name) {{
     return header_content
 
 def main():
-    """Main function to generate ringtone data header"""
+    """Main function to generate ringtone data header with caching"""
     
     # Get project root directory
     script_dir = Path(__file__).parent
     project_root = script_dir.parent
     ringtone_dir = project_root / "data" / "ringtones"
     output_file = project_root / "src" / "ringtones" / "ringtone_data.h"
+    cache_file = project_root / ".ringtone_cache"
     
     print(f"Scanning for RTTTL files in: {ringtone_dir}")
     
@@ -279,6 +364,25 @@ def main():
     if not ringtone_dir.exists():
         print(f"Error: Ringtones directory not found: {ringtone_dir}")
         sys.exit(1)
+    
+    # Load cache
+    cache_data = load_cache(cache_file)
+    
+    # Check cache validity
+    cache_valid, changed_files, current_hashes = check_cache_validity(ringtone_dir, cache_data)
+    
+    if cache_valid and output_file.exists():
+        print("✅ Cache is valid - no changes detected")
+        print(f"  Using cached ringtone data: {get_relative_path(output_file, project_root)}")
+        print(f"  Last update: {cache_data.get('timestamp', 'unknown')}")
+        print(f"  Total ringtones: {cache_data.get('ringtone_count', 'unknown')}")
+        return
+    
+    # Cache is invalid or output doesn't exist - regenerate
+    if changed_files:
+        print(f"🔄 Changes detected in files: {', '.join(changed_files)}")
+    else:
+        print("🔄 Regenerating ringtone data (cache invalid or missing)")
     
     # Find all RTTTL files
     ringtone_files = []
@@ -309,7 +413,7 @@ def main():
     try:
         with open(output_file, 'w', encoding='utf-8') as f:
             f.write(header_content)
-        print(f"\nGenerated: {output_file}")
+        print(f"\nGenerated: {get_relative_path(output_file, project_root)}")
         print(f"Total ringtones: {len(ringtone_files)}")
         print("\nRingtones included:")
         for _, _, rtttl_name in ringtone_files:
@@ -326,6 +430,14 @@ def main():
         print(f"  Memory savings: {savings:.1f}%")
         print(f"  Using binary format only for maximum efficiency")
         
+        # Update cache with relative paths
+        cache_data['file_hashes'] = current_hashes
+        cache_data['ringtone_count'] = len(ringtone_files)
+        cache_data['output_file'] = get_relative_path(output_file, project_root)
+        cache_data['ringtone_dir'] = get_relative_path(ringtone_dir, project_root)
+        save_cache(cache_file, cache_data)
+        print(f"\n💾 Cache updated: {get_relative_path(cache_file, project_root)}")
+        
     except Exception as e:
         print(f"Error writing output file: {e}")
         sys.exit(1)
@@ -335,7 +447,7 @@ def main():
     print("1. Include 'ringtone_data.h' in your RingtonePlayer class")
     print("2. Use getRingtoneData() to access binary ringtone data")
     print("3. Binary format provides significant memory savings")
-    print("4. Re-run this script whenever you add new RTTTL files")
+    print("4. Script will automatically cache changes - re-run when adding new files")
 
 if __name__ == "__main__":
     main() 

@@ -5,9 +5,12 @@
 
 class MQTTClient {
 public:
+  MQTTClient(); // Default constructor for simple usage
   MQTTClient(void (*callback)(char*, uint8_t*, unsigned int));
+  void begin(); // Simple begin using settings.h
   void begin(const char* ssid, const char* password, const char* mqttBroker, int mqttPort, const char* clientId);
   void loop();
+  void update(); // Alias for loop() for consistency with other managers
   bool publish(const char* topic, const char* payload);
   void subscribe(const char* topic);
 private:

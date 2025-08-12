@@ -4,21 +4,29 @@ The **Alert TX-1** is a retro-inspired 80's style beeper built on the Adafruit E
 
 ## **✨ Features**
 
-* **Sentry.io Integration:** Receives alerts from Sentry.io webhooks via an MQTT service.  
-* **Wireless Messaging:** Communicates over Wi-Fi using the MQTT protocol.  
-* **Retro UI:** Features a basic, colored menu system with navigation, styled like an 80's cellphone.  
-* **Intuitive Navigation:** Uses four physical buttons for menu navigation and interaction.  
-* **Customizable Ringtones:** Plays custom melodies on a passive buzzer.  
-* **Notification LED:** An onboard LED provides visual alerts.  
-* **Beeper Hero Mini-Game:** A simple rhythm-based game for entertainment.  
-* **Smart Power Management:** Defaults to a low-power sleep mode and wakes with a long button press, eliminating the need for a physical power switch.
+* **Sentry.io Integration:** Receives alerts from Sentry.io webhooks via an MQTT service  
+* **React-like UI Framework:** Modern component-based architecture with 30 FPS performance  
+* **14 Built-in Ringtones:** Classic tunes with 42% memory-optimized binary format  
+* **Notification LED:** A 3mm green LED provides visual alerts  
+* **BeeperHero Game:** Rhythm-based mini-game for entertainment  
+* **Smart Power Management:** Low-power sleep modes with wake-on-button functionality
 
 ## **📦 Hardware Requirements**
 
-* **Adafruit ESP32-S3 Reverse TFT Feather** (4MB Flash, 2MB PSRAM, STEMMA QT)  
-* **4 Push Buttons:** Three vertical on left, one on right.  
-* **Passive Buzzer:** For ringtones and game sounds.  
-* **Onboard LED:** For status indications.
+* **[Adafruit ESP32-S3 Reverse TFT Feather](https://www.adafruit.com/product/5691)** (4MB Flash, 2MB PSRAM, STEMMA QT)  
+* **[LiPo Battery 400mAh](https://www.adafruit.com/product/3898):** Portable power (designed for Feathers)  
+* **[Passive Buzzer 9025](https://www.aliexpress.us/item/2251832678338636.html):** For ringtones and game sounds  
+* **3mm Green LED:** For status indications  
+* **3 Built-in Buttons:** Physical buttons A, B, C on the ESP32-S3 Feather board
+
+## 🚀 **Build Status**
+
+✅ **Successfully Compiling** - Ready for upload and testing!
+
+- **Sketch Size:** 1,033,171 bytes (71% of ESP32-S3 storage)
+- **Memory Usage:** 66,260 bytes (20% of RAM)  
+- **14 Ringtones:** Optimized with binary format
+- **All Libraries:** Successfully integrated
 
 ## **💻 Software Requirements**
 
@@ -30,12 +38,15 @@ This repository includes the **Beeper-Service/** directory, which is intended fo
 
 ## 📚 Documentation
 
-Comprehensive documentation is available in the [docs/](AlertTX-1/docs/) directory:
+**For complete technical documentation, build instructions, and UI framework details, see [AlertTX-1/README.md](AlertTX-1/README.md)**
 
-- **[Documentation Index](AlertTX-1/docs/README.md)** - Complete documentation overview
-- **[UI System Design](AlertTX-1/docs/ui-system-design.md)** - UI architecture and design patterns
-- **[Hardware Setup](AlertTX-1/docs/hardware-setup.md)** - Hardware requirements and assembly
-- **[Software Architecture](AlertTX-1/docs/software-architecture.md)** - Code structure and components
+Additional documentation is available in the [docs/](AlertTX-1/docs/) directory:
+
+- **[USB Connection Guide](AlertTX-1/docs/usb-connection-guide.md)** - **NEW!** Complete Mac setup and upload instructions
+- **[Hardware Setup Guide](AlertTX-1/docs/hardware-setup.md)** - Complete assembly instructions
+- **[Pinout Reference](AlertTX-1/docs/pinout-reference.md)** - GPIO assignments and wiring
+- **[UI Framework Guide](AlertTX-1/docs/ui-framework-integration.md)** - React-like framework architecture
+- **[Ringtone Build System](AlertTX-1/docs/ringtone-build-system.md)** - Audio system documentation
 
 ## **🚀 Getting Started**
 
@@ -47,15 +58,29 @@ Comprehensive documentation is available in the [docs/](AlertTX-1/docs/) directo
 3. **Install ESP32 Boards** via Tools \> Board \> Boards Manager....  
 4. **Select Board:** Tools \> Board \> ESP32 Arduino \> Adafruit ESP32-S3 Feather.
 
-### **2\. Library Installation**
+### **2\. USB Connection and Setup**
 
-Install required libraries via Sketch \> Include Library \> Manage Libraries...:
+**For detailed Mac-specific USB connection and upload instructions, see [USB Connection Guide](AlertTX-1/docs/usb-connection-guide.md)**
 
-* Adafruit GFX Library  
-* Adafruit ST7735 and ST7789 Library  
-* PubSubClient
+1. **Connect ESP32-S3 Feather to Mac** via USB-C cable
+2. **Install drivers** if needed (Silicon Labs CP210x)
+3. **Install Arduino CLI** - Use `brew install arduino-cli` or download from GitHub
+4. **Verify connection** - Yellow CHG LED should illuminate
+5. **Configure Arduino CLI** - Install ESP32 board support
 
-### **3\. Project Files**
+### **3\. Library Installation**
+
+**Libraries are automatically managed by Arduino CLI. Required libraries will be installed automatically during the first build.**
+
+If you need to manually install libraries:
+```bash
+# Install required libraries via Arduino CLI
+arduino-cli lib install "Adafruit GFX Library"
+arduino-cli lib install "Adafruit ST7735 and ST7789 Library"
+arduino-cli lib install "PubSubClient"
+```
+
+### **4\. Project Files**
 
 1. **Clone the Repository:**  
    git clone https://github.com/your-username/AlertTX-1.git  
@@ -64,49 +89,34 @@ Install required libraries via Sketch \> Include Library \> Manage Libraries...:
    (Replace with your actual repository URL)  
 2. **Open in Arduino IDE:** Open AlertTX-1.ino.
 
-### **4\. Configuration**
+### **5\. Build and Upload**
 
-Edit src/config/settings.h to set your Wi-Fi credentials, MQTT broker details, and hardware pin assignments.
+```bash
+# Navigate to the AlertTX-1 directory
+cd AlertTX-1
 
-// src/config/settings.h  
-\#ifndef SETTINGS\_H  
-\#define SETTINGS\_H
+# Generate ringtone data and build project (recommended)
+make upload
 
-// WiFi Settings  
-const char\* WIFI\_SSID \= "YourWiFiSSID";         // \<--- CHANGE THIS  
-const char\* WIFI\_PASSWORD \= "YourWiFiPassword"; // \<--- CHANGE THIS
+# Or step by step:
+make ringtones  # Generate ringtone data
+make build      # Build Arduino project
+make upload     # Upload to device (includes build)
 
-// MQTT Settings  
-const char\* MQTT\_BROKER \= "your.mqtt.broker.com"; // \<--- CHANGE THIS (e.g., "broker.hivemq.com")  
-const int MQTT\_PORT \= 1883;  
-const char\* MQTT\_CLIENT\_ID \= "AlertTX1\_Device";  
-const char\* MQTT\_TOPIC\_SUBSCRIBE \= "alerttx1/messages"; // Topic to receive messages  
-const char\* MQTT\_TOPIC\_PUBLISH \= "alerttx1/status";    // Topic to publish status (optional)
+# Monitor serial output
+make monitor
+```
 
-// Hardware Pin Definitions - See docs/pinout-reference.md for complete pin assignments
-// Using built-in buttons only
-const int BUTTON\_A\_PIN \= 0;         // GPIO0 - Built-in D0/BOOT button (Button A)  
-const int BUTTON\_B\_PIN \= 1;         // GPIO1 - Built-in D1 button (Button B)  
-const int BUTTON\_C\_PIN \= 2;         // GPIO2 - Built-in D2 button (Button C)  
-const int BUZZER\_PIN \= 15;           // GPIO15 (A3) - Passive buzzer
+**Alternative**: Use Arduino CLI directly:
+```bash
+# Compile and upload
+arduino-cli compile --fqbn esp32:esp32:adafruit_feather_esp32s3_reversetft .
+arduino-cli upload --fqbn esp32:esp32:adafruit_feather_esp32s3_reversetft .
+```
 
-// Display Settings (Built-in TFT - automatically configured by board library)
-// See docs/pinout-reference.md for complete TFT pin information
+### **6\. Configuration**
 
-// Power Management Settings  
-const unsigned long INACTIVITY\_TIMEOUT\_MS \= 60000; // 60 seconds before entering low power mode  
-const unsigned long LONG\_PRESS\_THRESHOLD\_MS \= 1000; // 1 second for long press detection
-
-// Game Settings  
-const int GAME\_SPEED\_LEVEL \= 1; // Initial game speed
-
-\#endif // SETTINGS\_H
-
-### **5\. Upload to ESP32**
-
-1. Connect your Adafruit ESP32-S3 Feather.  
-2. Select the correct **Port** in Arduino IDE.  
-3. Click **Upload**.
+Edit `AlertTX-1/src/config/settings.h` to set your Wi-Fi credentials, MQTT broker details, and hardware pin assignments.
 
 ## **🎮 Usage**
 
@@ -116,7 +126,7 @@ The Alert TX-1 defaults to a low-power sleep mode. Perform a **long press** (hol
 
 ### **Navigation**
 
-Use the **Left Column Buttons** (Up/Mid/Down) for menu navigation and the **Right Side Button** for selection or backing out.
+Use **Button A/B** to navigate up/down through menus and **Button C** to select items or go back.
 
 ### **Receiving Sentry.io Alerts**
 
@@ -124,18 +134,18 @@ Once connected to Wi-Fi and MQTT, the Alert TX-1 subscribes to the topic defined
 
 ### **Ringtones**
 
-Default ringtones are in src/ringtones/ringtones.h. You can define new ones in data/ringtones.json (requires code to load from SPIFFS/LittleFS). Select and preview ringtones via the "Ringtones" menu.
+The device includes 14 built-in ringtones with optimized binary format. Add custom RTTTL files to `data/ringtones/` and run `make ringtones` to include them. Access the "Ringtones" menu to select and preview sounds.
 
-### **Beeper Hero Game**
+### **BeeperHero Game**
 
-Access the "Games" menu and select "Beeper Hero." Use the physical buttons to hit notes as they scroll down.
+Access the "Games" menu and select "BeeperHero." Use buttons A, B, C to hit notes as they scroll down, following the rhythm of the selected ringtone.
 
 ## **🔧 Customization**
 
-* **Ringtones:** Modify src/ringtones/ringtones.h or add JSON files to data/ringtones.json.  
-* **Fonts:** Place custom bitmap fonts in data/fonts/.  
-* **UI Themes:** Adjust colors and drawing routines in src/ui/UIManager.cpp.  
-* **Game Difficulty:** Modify GAME\_SPEED\_LEVEL in src/config/settings.h.
+* **Ringtones:** Add RTTTL files to `data/ringtones/` and run `make ringtones`  
+* **UI Components:** Create custom components using the React-like framework  
+* **Game Difficulty:** Modify game settings in `src/config/settings.h`  
+* **Hardware Integration:** Extend with sensors, displays, or other peripherals
 
 ## **🤝 Contributing**
 

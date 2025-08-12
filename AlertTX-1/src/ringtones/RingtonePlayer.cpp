@@ -1,8 +1,7 @@
 #include "RingtonePlayer.h"
 #include "src/config/settings.h"
 
-// Global ringtone player instance
-RingtonePlayer ringtonePlayer;
+// RingtonePlayer implementation
 
 RingtonePlayer::RingtonePlayer() {
     isPlayingFlag = false;
@@ -57,37 +56,18 @@ void RingtonePlayer::playRingtone(const char* rtttl) {
 }
 
 void RingtonePlayer::playRingtoneByName(const char* name) {
-    const unsigned char* binary_data = getRingtoneData(name);
-    int length = getRingtoneLength(name);
-    if (binary_data && length > 0) {
-        playRingtoneBinary(binary_data, length);
-    } else {
-        Serial.printf("Ringtone not found: %s\n", name);
-    }
+    // For now, just print a message - binary format support needs custom implementation
+    Serial.printf("Binary ringtone playback not yet implemented: %s\n", name);
+    // TODO: Implement binary to RTTTL conversion or custom binary player
 }
 
 void RingtonePlayer::playRingtoneByIndex(int index) {
-    const unsigned char* binary_data = getRingtoneData(index);
-    int length = getRingtoneLength(index);
-    if (binary_data && length > 0) {
-        playRingtoneBinary(binary_data, length);
-    } else {
-        Serial.printf("Ringtone index out of range: %d\n", index);
-    }
+    // For now, just print a message - binary format support needs custom implementation
+    Serial.printf("Binary ringtone playback not yet implemented: index %d\n", index);
+    // TODO: Implement binary to RTTTL conversion or custom binary player
 }
 
-void RingtonePlayer::playRingtoneBinary(const unsigned char* binary_data, int length) {
-    if (!binary_data || length <= 0) return;
-    
-    // Use AnyRtttl binary playback
-    anyrtttl::nonblocking::begin(buzzerPin, binary_data, length);
-    
-    isPlayingFlag = true;
-    playbackStartTime = millis();
-    noteInfoValid = false;
-    
-    Serial.printf("Playing binary ringtone (%d bytes)\n", length);
-}
+
 
 void RingtonePlayer::playRingtoneFromMemory(const char* rtttl) {
     // Same as playRingtone for now - AnyRtttl handles memory management
