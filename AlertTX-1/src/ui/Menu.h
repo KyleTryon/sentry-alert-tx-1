@@ -5,6 +5,7 @@
 #include <Adafruit_ST7789.h>
 #include <Arduino.h>
 #include "core/Theme.h"
+#include "../config/DisplayConfig.h"
 
 /**
  * Enhanced Menu Class
@@ -30,17 +31,14 @@ private:
     int itemCount;
     int selectedIndex;
     
-    // Enhanced layout - full width, optimized for 135px screen height
-    static const int MENU_PADDING = 10;      // Edge padding from screen edges
-    static const int ITEM_HEIGHT = 25;       // Optimized height for 3-4 items on 135px screen
-    static const int ITEM_SPACING = 2;       // Space between menu items
-    static const int SCREEN_HEIGHT = 135;    // ESP32-S3 Reverse TFT screen height
+    // Layout constants from DisplayConfig (centralized display settings)
+    // These match the optimized layout for our display size
     
-    // Calculated layout (240x135 screen)
-    int startX = MENU_PADDING;                        // 10px from left edge
-    int startY = 50;                                  // Moved up to better utilize screen space
-    int itemHeight = ITEM_HEIGHT;                     // 25px per item
-    int menuWidth = 240 - (2 * MENU_PADDING);        // 220px (full width minus padding)
+    // Calculated layout using DisplayConfig constants
+    int startX = MENU_PADDING;                        // From DisplayConfig
+    int startY = MENU_START_Y;                        // From DisplayConfig
+    int itemHeight = MENU_ITEM_HEIGHT;                // From DisplayConfig  
+    int menuWidth = MENU_WIDTH;                       // From DisplayConfig
     
     // Theme system replaces hardcoded colors
     // Colors now come from ThemeManager::getTheme()

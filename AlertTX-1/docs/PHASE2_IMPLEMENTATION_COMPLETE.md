@@ -9,6 +9,8 @@ Phase 2 successfully transforms the Alert TX-1 UI framework from a simple menu s
 - **Screen Abstraction** - Manages collections of components
 - **ScreenManager** - Navigation between screens with stack management
 - **Clickable Interface** - Abstract button interaction behavior
+- **DisplayConfig** - Centralized display hardware specifications
+- **DisplayUtils** - Graphics library extension for common operations
 
 ### **🧩 Component System**
 - **MenuItem Component** - Individual menu items as full components
@@ -28,19 +30,28 @@ Phase 2 successfully transforms the Alert TX-1 UI framework from a simple menu s
 
 ### **File Structure**
 ```
-AlertTX-1/src/ui/
-├── core/                           # Core framework
-│   ├── Theme.h/cpp                 # ✅ Phase 1 - Theme management
-│   ├── Component.h/cpp             # 🆕 Phase 2 - Base component class
-│   ├── Screen.h/cpp                # 🆕 Phase 2 - Screen base class
-│   └── ScreenManager.h/cpp         # 🆕 Phase 2 - Navigation manager
-├── components/                     # Reusable components
-│   ├── Clickable.h                 # 🆕 Phase 2 - Button interaction interface
-│   ├── MenuItem.h/cpp              # 🆕 Phase 2 - Individual menu item
-│   └── MenuContainer.h/cpp         # 🆕 Phase 2 - Enhanced menu container
-├── screens/                        # Screen implementations
-│   └── MainMenuScreen.h/cpp        # 🆕 Phase 2 - Component-based main menu
-└── Menu.h/cpp                      # ✅ Phase 1 - Simple menu (legacy)
+AlertTX-1/src/
+├── config/                         # Hardware configuration
+│   ├── DisplayConfig.h             # 🎯 Phase 2.5 - Display specifications (single source)
+│   └── settings.h                  # Hardware pin definitions
+├── ui/                             # UI Framework
+│   ├── core/                       # Core framework
+│   │   ├── Theme.h/cpp             # ✅ Phase 1 - Theme management
+│   │   ├── Component.h/cpp         # 🆕 Phase 2 - Base component class
+│   │   ├── Screen.h/cpp            # 🆕 Phase 2 - Screen base class
+│   │   ├── ScreenManager.h/cpp     # 🆕 Phase 2 - Navigation manager
+│   │   └── DisplayUtils.h/cpp      # 🎯 Phase 2.5 - Graphics library extension
+│   ├── components/                 # Reusable components
+│   │   ├── Clickable.h             # 🆕 Phase 2 - Button interaction interface
+│   │   ├── MenuItem.h/cpp          # 🆕 Phase 2 - Individual menu item
+│   │   └── MenuContainer.h/cpp     # 🆕 Phase 2 - Enhanced menu container
+│   ├── screens/                    # Screen implementations
+│   │   ├── MainMenuScreen.h/cpp    # 🆕 Phase 2 - Component-based main menu
+│   │   └── SplashScreen.h/cpp      # 🎯 Phase 2.5 - Professional boot screen
+│   └── Menu.h/cpp                  # ✅ Phase 1 - Simple menu (legacy)
+├── hardware/                       # Hardware abstraction
+├── icons/                          # RGB565 icon data
+└── ringtones/                      # RTTTL audio data
 ```
 
 ### **Component Hierarchy**

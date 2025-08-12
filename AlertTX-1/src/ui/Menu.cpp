@@ -1,4 +1,5 @@
 #include "Menu.h"
+#include "../config/DisplayConfig.h"
 
 Menu::Menu(Adafruit_ST7789* tft) : display(tft), items(nullptr), itemCount(0), selectedIndex(0) {
     // Initialize ThemeManager if not already done
@@ -18,7 +19,7 @@ void Menu::setItems(MenuItem* menuItems, int count) {
         int maxItems = getMaxVisibleItems();
         Serial.printf("LAYOUT WARNING: %d items may not fit. Max visible items: %d\n", count, maxItems);
         Serial.printf("Total menu height: %dpx, Available height: %dpx\n", 
-                     getTotalMenuHeight(), SCREEN_HEIGHT - startY);
+                     getTotalMenuHeight(), DISPLAY_HEIGHT - startY);
         Serial.println("Consider reducing item count or adjusting layout parameters.");
     } else {
         Serial.printf("Layout OK: %d items fit within screen bounds\n", count);
@@ -64,7 +65,7 @@ void Menu::clear() {
     if (!display || !items) return;
     
     // Clear the menu area using theme background color
-    int totalHeight = itemCount * (itemHeight + ITEM_SPACING) + 10;  // Include spacing + extra padding
+    int totalHeight = itemCount * (itemHeight + MENU_ITEM_SPACING) + 10;  // Include spacing + extra padding
     display->fillRect(startX - 5, startY - 5, menuWidth + 10, totalHeight, ThemeManager::getBackground());
 }
 
@@ -76,7 +77,7 @@ void Menu::draw() {
     
     for (int i = 0; i < itemCount; i++) {
         // Calculate item position with spacing
-        int itemY = startY + (i * (itemHeight + ITEM_SPACING));
+        int itemY = startY + (i * (itemHeight + MENU_ITEM_SPACING));
         
         if (i == selectedIndex) {
             // Draw selection rectangle with theme accent color
@@ -109,8 +110,8 @@ bool Menu::validateLayout() const {
     int endY = startY + totalHeight;
     
     // Check if menu fits within screen bounds
-    if (endY > SCREEN_HEIGHT) {
-        Serial.printf("WARNING: Menu extends beyond screen! EndY=%d, ScreenHeight=%d\n", endY, SCREEN_HEIGHT);
+    if (endY > DISPLAY_HEIGHT) {
+        Serial.printf("WARNING: Menu extends beyond screen! EndY=%d, ScreenHeight=%d\n", endY, DISPLAY_HEIGHT);
         return false;
     }
     
@@ -119,14 +120,14 @@ bool Menu::validateLayout() const {
 
 int Menu::getMaxVisibleItems() const {
     // Calculate how many items can fit on screen
-    int availableHeight = SCREEN_HEIGHT - startY - 10; // 10px bottom margin
-    int itemSizeWithSpacing = itemHeight + ITEM_SPACING;
+    int availableHeight = DISPLAY_HEIGHT - startY - MARGIN_MEDIUM; // Bottom margin from DisplayConfig
+    int itemSizeWithSpacing = itemHeight + MENU_ITEM_SPACING;
     return availableHeight / itemSizeWithSpacing;
 }
 
 int Menu::getTotalMenuHeight() const {
     if (itemCount == 0) return 0;
-    return (itemCount * itemHeight) + ((itemCount - 1) * ITEM_SPACING);
+    return (itemCount * itemHeight) + ((itemCount - 1) * MENU_ITEM_SPACING);
 }
 
 /**

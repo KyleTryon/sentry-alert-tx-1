@@ -1,5 +1,8 @@
 #include "MainMenuScreen.h"
 #include "../core/ScreenManager.h"
+#include "AlertsScreen.h"
+#include "GamesScreen.h"
+#include "SettingsScreen.h"
 
 // Static members
 MainMenuScreen* MainMenuScreen::instance = nullptr;
@@ -12,7 +15,7 @@ const Theme* MainMenuScreen::themes[THEME_COUNT] = {
 };
 
 MainMenuScreen::MainMenuScreen(Adafruit_ST7789* display)
-    : Screen(display, "MainMenu", 1) {
+    : Screen(display, "MainMenu", 1), alertsScreen(nullptr), gamesScreen(nullptr), settingsScreen(nullptr) {
     
     instance = this;  // Set static instance for callbacks
     
@@ -22,6 +25,9 @@ MainMenuScreen::MainMenuScreen(Adafruit_ST7789* display)
     // Add menu to screen components
     addComponent(mainMenu);
     
+    // Initialize child screens
+    initializeScreens();
+    
     // Setup menu items
     setupMenu();
     
@@ -29,6 +35,9 @@ MainMenuScreen::MainMenuScreen(Adafruit_ST7789* display)
 }
 
 MainMenuScreen::~MainMenuScreen() {
+    // Clean up child screens
+    cleanupScreens();
+    
     // Components are automatically cleaned up by Screen destructor
     instance = nullptr;
     Serial.println("MainMenuScreen destroyed");
@@ -94,24 +103,52 @@ void MainMenuScreen::cycleTheme() {
 void MainMenuScreen::onAlertsSelected() {
     Serial.println("MainMenuScreen: Alerts selected");
     
-    // TODO: Navigate to AlertsScreen when it's implemented
-    // For now, just provide feedback
-    Serial.println("  -> Alerts functionality not yet implemented");
+    if (!alertsScreen) {
+        Serial.println("ERROR: AlertsScreen not initialized!");
+        return;
+    }
+    
+    // Navigate to AlertsScreen
+    ScreenManager* manager = GlobalScreenManager::getInstance();
+    if (manager) {
+        manager->pushScreen(alertsScreen);
+    } else {
+        Serial.println("ERROR: No global screen manager available!");
+    }
 }
 
 void MainMenuScreen::onGamesSelected() {
     Serial.println("MainMenuScreen: Games selected");
     
-    // TODO: Navigate to GamesScreen when it's implemented
-    // For now, just provide feedback
-    Serial.println("  -> Games functionality not yet implemented");
+    if (!gamesScreen) {
+        Serial.println("ERROR: GamesScreen not initialized!");
+        return;
+    }
+    
+    // Navigate to GamesScreen
+    ScreenManager* manager = GlobalScreenManager::getInstance();
+    if (manager) {
+        manager->pushScreen(gamesScreen);
+    } else {
+        Serial.println("ERROR: No global screen manager available!");
+    }
 }
 
 void MainMenuScreen::onSettingsSelected() {
     Serial.println("MainMenuScreen: Settings selected");
     
-    // Demonstrate theme cycling
-    cycleTheme();
+    if (!settingsScreen) {
+        Serial.println("ERROR: SettingsScreen not initialized!");
+        return;
+    }
+    
+    // Navigate to SettingsScreen
+    ScreenManager* manager = GlobalScreenManager::getInstance();
+    if (manager) {
+        manager->pushScreen(settingsScreen);
+    } else {
+        Serial.println("ERROR: No global screen manager available!");
+    }
 }
 
 // Static callback wrappers
@@ -153,4 +190,37 @@ void MainMenuScreen::createMenuItems() {
 void MainMenuScreen::updateTitle() {
     // Title is drawn in draw() method
     // This could update dynamic title content if needed
+}
+
+void MainMenuScreen::initializeScreens() {
+    Serial.println("MainMenuScreen: Initializing child screens...");
+    
+    // Create screen instances
+    alertsScreen = new AlertsScreen(display);
+    gamesScreen = new GamesScreen(display);
+    settingsScreen = new SettingsScreen(display);
+    
+    Serial.println("MainMenuScreen: All child screens initialized");
+}
+
+void MainMenuScreen::cleanupScreens() {
+    Serial.println("MainMenuScreen: Cleaning up child screens...");
+    
+    // Delete screen instances
+    if (alertsScreen) {
+        delete alertsScreen;
+        alertsScreen = nullptr;
+    }
+    
+    if (gamesScreen) {
+        delete gamesScreen;
+        gamesScreen = nullptr;
+    }
+    
+    if (settingsScreen) {
+        delete settingsScreen;
+        settingsScreen = nullptr;
+    }
+    
+    Serial.println("MainMenuScreen: Child screens cleaned up");
 }

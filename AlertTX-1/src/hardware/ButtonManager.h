@@ -20,7 +20,7 @@ private:
     
     // Debouncing configuration (from settings.h)
     static const unsigned long DEBOUNCE_DELAY = 50;  // 50ms debounce
-    static const unsigned long LONG_PRESS_DELAY = 1000; // 1 second for long press
+    static const unsigned long LONG_PRESS_DELAY = 1500; // 1.5 seconds for long press (back navigation)
     static const unsigned long REPEAT_DELAY = 200;  // For held buttons
     
     struct ButtonState {

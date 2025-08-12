@@ -1,8 +1,5 @@
 #include "Component.h"
-
-// Screen dimensions for bounds checking
-static const int SCREEN_WIDTH = 240;
-static const int SCREEN_HEIGHT = 135;
+#include "../../config/DisplayConfig.h"
 
 Component::Component(Adafruit_ST7789* display, const char* name)
     : display(display), x(0), y(0), width(0), height(0), componentName(name) {
@@ -123,7 +120,7 @@ void Component::drawText(const char* text, int x, int y, uint16_t color, int siz
 // Private validation helpers
 bool Component::isOnScreen() const {
     // Check if component is at least partially on screen
-    return intersects(0, 0, SCREEN_WIDTH, SCREEN_HEIGHT);
+    return intersects(0, 0, DISPLAY_WIDTH, DISPLAY_HEIGHT);
 }
 
 bool Component::hasValidBounds() const {

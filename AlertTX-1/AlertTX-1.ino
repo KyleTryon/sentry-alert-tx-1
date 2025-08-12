@@ -15,14 +15,17 @@
 #include <Adafruit_ST7789.h> // Hardware-specific library for ST7789
 #include <SPI.h>
 
-// Phase 2 Component-Based UI Framework
+// Phase 2 Component-Based UI Framework  
+#include "src/config/DisplayConfig.h"
 #include "src/ui/core/Theme.h"
 #include "src/ui/core/Component.h"
 #include "src/ui/core/Screen.h"
 #include "src/ui/core/ScreenManager.h"
+#include "src/ui/core/DisplayUtils.h"
 #include "src/ui/components/MenuItem.h"
 #include "src/ui/components/MenuContainer.h"
 #include "src/ui/screens/MainMenuScreen.h"
+#include "src/ui/screens/SplashScreen.h"
 #include "src/hardware/ButtonManager.h"
 
 // Use dedicated hardware SPI pins
@@ -31,6 +34,7 @@ Adafruit_ST7789 tft = Adafruit_ST7789(TFT_CS, TFT_DC, TFT_RST);
 // Phase 2 Component-Based UI Framework
 ScreenManager* screenManager;
 MainMenuScreen* mainMenuScreen;
+SplashScreen* splashScreen;
 ButtonManager buttonManager;
 
 void setup(void) {
@@ -70,21 +74,34 @@ void setup(void) {
   Serial.println("7. Initializing component framework...");
   screenManager = new ScreenManager(&tft);
   mainMenuScreen = new MainMenuScreen(&tft);
+  splashScreen = new SplashScreen(&tft, mainMenuScreen);
   
-  // STEP 7: Start with main menu screen
-  Serial.println("8. Setting up main menu screen...");
-  screenManager->pushScreen(mainMenuScreen);
+  // STEP 7: Set up global screen manager access
+  Serial.println("8. Setting up global screen manager...");
+  GlobalScreenManager::setInstance(screenManager);
+  
+  // STEP 8: Start with splash screen
+  Serial.println("9. Starting with splash screen...");
+  screenManager->pushScreen(splashScreen);
   
   Serial.println("=== Phase 2 Component Framework Ready! ===");
-  Serial.println("A = Up, B = Down, C = Select");
-  Serial.println("Settings cycles through themes");
+  Serial.println("Showing splash screen for 2 seconds...");
+  Serial.println("A = Up, B = Down, C = Select (or press any key to skip splash)");
 }
 
 void loop() {
   // Update button manager
   buttonManager.update();
   
-  // Handle button presses and route to ScreenManager
+  // Handle long presses for back navigation (any button)
+  if (buttonManager.isLongPressed(ButtonManager::BUTTON_A) || 
+      buttonManager.isLongPressed(ButtonManager::BUTTON_B) || 
+      buttonManager.isLongPressed(ButtonManager::BUTTON_C)) {
+    Serial.println("Long press detected - navigating back");
+    screenManager->popScreen();
+  }
+  
+  // Handle regular button presses and route to ScreenManager
   if (buttonManager.wasPressed(ButtonManager::BUTTON_A)) {  // Up
     Serial.println("Up pressed - routing to screen manager");
     screenManager->handleButtonPress(ButtonInput::BUTTON_A);
@@ -104,9 +121,9 @@ void loop() {
   screenManager->update();
   screenManager->draw();
   
-  // Debug: Performance monitoring
+  // Debug: Performance monitoring (reduced frequency during splash)
   static unsigned long lastDebug = 0;
-  if (millis() - lastDebug > 10000) {  // Every 10 seconds
+  if (millis() - lastDebug > 30000) {  // Every 30 seconds (reduced from 10)
     Serial.println("=== Performance Stats ===");
     screenManager->printPerformanceStats();
     screenManager->printStackState();

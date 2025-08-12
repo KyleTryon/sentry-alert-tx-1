@@ -4,6 +4,11 @@
 #include "../core/Screen.h"
 #include "../components/MenuContainer.h"
 
+// Forward declarations for screen navigation
+class AlertsScreen;
+class GamesScreen;
+class SettingsScreen;
+
 /**
  * MainMenuScreen
  * 
@@ -53,9 +58,16 @@ public:
     static void settingsCallback();
     
 private:
+    // Screen instances for navigation
+    AlertsScreen* alertsScreen;
+    GamesScreen* gamesScreen;
+    SettingsScreen* settingsScreen;
+    
     // Helper methods
     void createMenuItems();
     void updateTitle();
+    void initializeScreens();
+    void cleanupScreens();
     
     // Static instance for callbacks
     static MainMenuScreen* instance;

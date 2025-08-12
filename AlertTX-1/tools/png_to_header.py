@@ -18,6 +18,31 @@ def rgb888_to_rgb565(r, g, b):
     b = (b >> 3) & 0x1F
     return (r << 11) | (g << 5) | b
 
+def parse_size_from_filename(filename):
+    """Parse expected dimensions from filename.
+    
+    Supports formats:
+    - name_16.png -> (16, 16)
+    - name_32.png -> (32, 32) 
+    - name_240x135.png -> (240, 135)
+    - name.png -> None (no size specified)
+    """
+    stem = Path(filename).stem
+    
+    # Check for WxH format (e.g., splash_240x135)
+    match = re.search(r'_(\d+)x(\d+)$', stem)
+    if match:
+        return int(match.group(1)), int(match.group(2))
+    
+    # Check for square format (e.g., icon_32)
+    match = re.search(r'_(\d+)$', stem)
+    if match:
+        size = int(match.group(1))
+        return size, size
+    
+    # No size specified
+    return None
+
 def convert_png_to_header(png_path, output_dir, width=None, height=None):
     """Convert a PNG file to an Arduino header file."""
     
@@ -29,7 +54,10 @@ def convert_png_to_header(png_path, output_dir, width=None, height=None):
         if img.mode != 'RGBA':
             img = img.convert('RGBA')
         
-        # Resize if specified
+        # Parse expected size from filename
+        expected_size = parse_size_from_filename(png_path.name)
+        
+        # Resize if specified via command line args
         if width and height:
             img = img.resize((width, height), Image.Resampling.LANCZOS)
         elif width:
@@ -59,26 +87,46 @@ def convert_png_to_header(png_path, output_dir, width=None, height=None):
                 
                 rgb565_data.append(rgb565)
         
-        # Generate header filename
+        # Generate header filename and C identifier
         icon_name = png_path.stem
+        
+        # Remove size suffix from C identifier (but keep it in filename)
+        c_icon_name = icon_name
+        if expected_size:
+            # Remove _WxH or _SIZE suffix for cleaner C identifiers
+            c_icon_name = re.sub(r'_\d+x?\d*$', '', icon_name)
+        
+        # Convert hyphens to underscores for C identifiers
+        c_icon_name = c_icon_name.replace('-', '_')
+        
         header_filename = f"{icon_name}.h"
         header_path = output_dir / header_filename
         
-        # Convert hyphens to underscores for C identifiers
-        c_icon_name = icon_name.replace('-', '_')
+        # Validate image dimensions against filename
+        if expected_size:
+            expected_width, expected_height = expected_size
+            if img_width != expected_width or img_height != expected_height:
+                print(f"❌ Error: {png_path} is {img_width}x{img_height}, but filename indicates {expected_width}x{expected_height}")
+                return False
+            print(f"✅ Validated {png_path.name}: {img_width}x{img_height} matches expected size")
+        else:
+            # No size specified in filename - just inform about actual size
+            print(f"ℹ️  {png_path.name}: {img_width}x{img_height} (no size validation - consider using name_WxH.png format)")
         
-        # Check if image is 16x16
-        if img_width != 16 or img_height != 16:
-            print(f"❌ Error: {png_path} is {img_width}x{img_height}, but must be 16x16 pixels")
-            return False
-        
-        # Generate the header content
+        # Generate the header content with size info
+        size_info = f"Size: {img_width}x{img_height} pixels"
+        if expected_size:
+            size_info += f" (validated from filename)"
+        else:
+            size_info += f" (no filename validation)"
+            
         header_content = f"""#ifndef {c_icon_name.upper()}_H
 #define {c_icon_name.upper()}_H
 
 // AUTO-GENERATED FILE - DO NOT MODIFY
 // Generated from: {png_path.name}
-// Size: {img_width}x{img_height} pixels
+// {size_info}
+// Pixel format: RGB565
 
 #include <Arduino.h>
 #include "Icon.h"
@@ -87,7 +135,7 @@ def convert_png_to_header(png_path, output_dir, width=None, height=None):
 #define {c_icon_name.upper()}_WIDTH {img_width}
 #define {c_icon_name.upper()}_HEIGHT {img_height}
 
-// Icon data in RGB565 format
+// Icon data in RGB565 format ({len(rgb565_data)} pixels)
 const uint16_t {c_icon_name}_data[] PROGMEM = {{
 """
         

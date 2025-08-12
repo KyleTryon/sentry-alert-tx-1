@@ -1,10 +1,13 @@
-# Alert TX-1 UI Framework Guide
+# Alert TX-1 UI Framework Guide (Legacy Reference)
 
 ## Overview
 
-A simple, FlipperZero-inspired UI framework built for the ESP32-S3 Reverse TFT Feather. The system uses a clean, minimal approach with proven hardware integration for maximum reliability.
+⚠️ **LEGACY DOCUMENTATION** - This document describes the Phase 1 simple UI system. 
 
-**Status:** ✅ **Fully Functional** - Ready to use!
+**Current Status:** The Alert TX-1 now uses a modern **Phase 2 Component-Based Architecture**. 
+👉 **See [Phase 2 Implementation Complete](PHASE2_IMPLEMENTATION_COMPLETE.md) for current documentation.**
+
+This document is preserved for reference and understanding the evolution from simple to component-based architecture.
 
 ---
 
