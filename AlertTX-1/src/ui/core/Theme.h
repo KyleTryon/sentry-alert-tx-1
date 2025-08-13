@@ -30,7 +30,7 @@ struct Theme {
 
 // Predefined Themes (stored in PROGMEM for memory efficiency)
 
-// Default FlipperZero-inspired theme (current working theme)
+// Default Theme
 extern const Theme THEME_DEFAULT PROGMEM;
 
 // High contrast theme for better visibility

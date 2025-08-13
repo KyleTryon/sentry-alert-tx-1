@@ -144,5 +144,5 @@ int Menu::getTotalMenuHeight() const {
  * Example usage for arrows:
  * display->write(0x10); // Print ►
  * 
- * For now we use simple ">" character for FlipperZero-like appearance
+ * For now we use simple ">" character
  */

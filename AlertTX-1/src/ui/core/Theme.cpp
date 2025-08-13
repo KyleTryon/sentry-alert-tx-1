@@ -7,7 +7,6 @@ int ThemeManager::currentThemeIndex = 0;
 
 // Theme Definitions (stored in PROGMEM for memory efficiency)
 
-// Default FlipperZero-inspired theme
 // Black background, white text, yellow selection - matches current working design
 const Theme THEME_DEFAULT PROGMEM = {
     .background = ST77XX_BLACK,         // Main screen background

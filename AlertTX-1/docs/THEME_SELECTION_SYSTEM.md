@@ -95,7 +95,7 @@ int current = ThemeManager::getCurrentThemeIndex();      // Get active theme ind
 **Theme Registry**:
 ```cpp
 static const Theme* themes[5] = {
-    &THEME_DEFAULT,      // Index 0: "Default" - FlipperZero style with yellow accents
+    &THEME_DEFAULT,      // Index 0: "Default" - 
     &THEME_HIGH_CONTRAST,// Index 1: "High Contrast" - Pure black and white for accessibility
     &THEME_TERMINAL,     // Index 2: "Terminal" - Retro green terminal computing style
     &THEME_AMBER,        // Index 3: "Amber" - Classic amber CRT with dark amber background
