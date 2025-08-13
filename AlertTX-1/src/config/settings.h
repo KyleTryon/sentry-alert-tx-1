@@ -30,10 +30,6 @@ const int LED_PIN = 13;             // GPIO13 (D13) - External 3mm Green LED
 // set this to the GPIO number to enable USB power detection. Otherwise keep -1.
 const int VBUS_SENSE_PIN = -1;      // -1 = not available; otherwise set to GPIO
 
-// Optional: Charger CHG LED sense pin (advanced/mod only)
-// If you wire the CHG LED (or charger status) to a safe GPIO, you can set this
-// to that GPIO to detect CHG LED state. Otherwise keep -1.
-const int CHG_SENSE_PIN = -1;       // -1 = not available; otherwise set to GPIO
 
 // Note: CHG LED is hardware controlled and shows battery charging status
 // NeoPixel at GPIO33 is also available for RGB status indicators

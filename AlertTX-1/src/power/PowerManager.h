@@ -56,11 +56,6 @@ private:
     static bool usbPowered;
     static bool charging;
 
-    // CHG LED debounce
-    static bool chgRaw;
-    static bool chgStable;
-    static unsigned long chgLastChangeMs;
-    static constexpr unsigned long CHG_DEBOUNCE_MS = 1500; // 1.5s
 
     // Wake flags
     static bool s_lastWakeWasFromSleep;

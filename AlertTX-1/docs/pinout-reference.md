@@ -57,10 +57,6 @@ These are optional and not connected by default. If you mod your hardware, you c
 | Function | GPIO | Description |
 |----------|------|-------------|
 | **VBUS Sense** | User-defined | Detects 5V USB presence (via voltage divider) |
-| **CHG LED Sense** | User-defined | Reads charger LED state to infer charging (debounced ~1.5s) |
-
-- The CHG LED is hardware-controlled as described in Adafruit’s guide, and not exposed as a GPIO by default. You may add an optical or electrical sense circuit to a spare GPIO if needed. See Adafruit’s Power Management docs for behavior details. 
-  - Reference: [Adafruit Power Management](https://learn.adafruit.com/esp32-s3-reverse-tft-feather/power-management)
 
 ## Detailed Pin Information
 

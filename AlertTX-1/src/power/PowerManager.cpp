@@ -30,9 +30,6 @@ float PowerManager::voltageEMA = 0.0f;
 bool PowerManager::usbPowered = false;
 bool PowerManager::charging = false;
 
-bool PowerManager::chgRaw = false;
-bool PowerManager::chgStable = false;
-unsigned long PowerManager::chgLastChangeMs = 0;
 
 bool PowerManager::s_lastWakeWasFromSleep = false;
 bool PowerManager::s_hasNewMessagesOnWake = false;
@@ -44,9 +41,6 @@ void PowerManager::begin() {
     // Optional VBUS sense pin setup if available
     if (VBUS_SENSE_PIN >= 0) {
         pinMode(VBUS_SENSE_PIN, INPUT);
-    }
-    if (CHG_SENSE_PIN >= 0) {
-        pinMode(CHG_SENSE_PIN, INPUT);
     }
 
     Wire.begin();
@@ -254,23 +248,8 @@ void PowerManager::updateChargingStatus() {
         usbPowered = (batteryVoltage > 4.0f);
     }
 
-    // CHG LED (active while charging) optional sense with debounce
-    if (CHG_SENSE_PIN >= 0) {
-        bool raw = digitalRead(CHG_SENSE_PIN) == HIGH; // depends on wiring polarity
-        unsigned long now = millis();
-        if (raw != chgRaw) {
-            chgRaw = raw;
-            chgLastChangeMs = now;
-        } else {
-            if ((now - chgLastChangeMs) >= CHG_DEBOUNCE_MS) {
-                chgStable = raw;
-            }
-        }
-    }
-
-    // Charging heuristic: if usb is present and either CHG LED indicates or SoC < ~99
-    bool chgIndicated = (CHG_SENSE_PIN >= 0) ? chgStable : false;
-    charging = usbPowered && (chgIndicated || (batteryPercent < 99));
+    // Charging heuristic: if usb is present and SoC < ~99, assume charging
+    charging = usbPowered && (batteryPercent < 99);
 
     // If we just disconnected from USB, reset inactivity timer to start countdown
     if (prevUsb && !usbPowered) {
