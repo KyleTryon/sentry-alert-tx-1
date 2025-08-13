@@ -29,6 +29,10 @@ public:
     static float getBatteryVoltage();
     static int getBatteryPercent();
 
+    // Charging / USB power
+    static bool isUsbPowered();
+    static bool isCharging();
+
     // State
     static PowerState getCurrentState();
 
@@ -48,6 +52,10 @@ private:
     static float voltageEMA;
     static constexpr float EMA_ALPHA = 0.2f;
 
+    // USB/Charging
+    static bool usbPowered;
+    static bool charging;
+
     // Wake flags
     static bool s_lastWakeWasFromSleep;
     static bool s_hasNewMessagesOnWake;
@@ -55,6 +63,7 @@ private:
     // Internals
     static void initMAX17048();
     static void updateBattery();
+    static void updateChargingStatus();
 
     static void setBacklight(bool enabled);
     static void configureSleepWakeSources(bool enableTimerWake);

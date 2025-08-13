@@ -25,6 +25,11 @@ const int BUZZER_PIN = 15;          // GPIO15 (A3) - Passive buzzer
 // LED Pin
 const int LED_PIN = 13;             // GPIO13 (D13) - External 3mm Green LED
 
+// Optional: USB VBUS/Charging sense pin
+// If your hardware routes USB 5V (VBUS) to a GPIO via a divider/level shifter,
+// set this to the GPIO number to enable USB power detection. Otherwise keep -1.
+const int VBUS_SENSE_PIN = -1;      // -1 = not available; otherwise set to GPIO
+
 // Note: CHG LED is hardware controlled and shows battery charging status
 // NeoPixel at GPIO33 is also available for RGB status indicators
 

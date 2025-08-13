@@ -6,21 +6,24 @@
 - Periodic deep-sleep wake to poll for notifications; instant wake on button
 - Settings to configure timeouts and a "Sleep now / Power off" option
 - Skip splash on deep-sleep wake; preserve UX consistency
+- Detect USB/charging and prevent sleep while charging; start inactivity timer once unplugged
 
 ## Hardware References
 - **Pinout**: `docs/pinout-reference.md` - Battery Monitor MAX17048 (I2C 0x36), VBAT, wake sources, TFT_BACKLITE (GPIO45)
 - **Hardware Setup**: `docs/hardware-setup.md` - Display power, pin assignments, LiPo 400mAh specs
+- **USB Power Sense (Optional)**: `src/config/settings.h` `VBUS_SENSE_PIN` can be wired to a GPIO through a safe divider to detect 5V presence.
 
 ## Architecture Overview
 Introduce `PowerManager` to orchestrate power states. Integrate with `InputRouter` for inactivity tracking and with `ScreenManager` for skip-splash behavior on wake.
 
 ### New Module: `src/power/PowerManager.{h,cpp}`
 **Responsibilities:**
-- `begin()`: Initialize MAX17048, backlight control (GPIO45), wake sources
+- `begin()`: Initialize MAX17048, backlight control (GPIO45), wake sources, optional VBUS sense
 - `onWake()`: Run at boot to handle splash skip and state carryover
 - `update(nowMs)`: State machine transitions: Active → IdleDim → DeepSleepCycle
 - `requestSleepNow()` / `requestPowerOff()`: Invoked from Settings to enter deep sleep
 - `getBatteryVoltage()`, `getBatteryPercent()`: MAX17048-based readings with EMA smoothing
+- `isUsbPowered()`, `isCharging()`: USB/charging detection; disable sleep while true
 - Config getters read from `SettingsManager`
 
 **Power State Machine:**
@@ -28,10 +31,12 @@ Introduce `PowerManager` to orchestrate power states. Integrate with `InputRoute
   - `InputRouter` calls `PowerManager::notifyActivity()` on any input
   - If `now - lastActivityMs >= inactivityTimeoutMs` → IdleDim (dim/off backlight)
   - If additionally `>= inactivityTimeoutMs + dimGraceMs` → DeepSleepCycle
+  - If `isUsbPowered()` or `isCharging()` → remain Active and reset inactivity timer
 - **IdleDim**
   - Backlight off: `digitalWrite(TFT_BACKLITE, LOW)`
   - Any input → restore backlight, return to Active
   - If grace period exceeded → DeepSleepCycle
+  - If `isUsbPowered()` or `isCharging()` → force Active and backlight on
 - **DeepSleepCycle**
   - Configure timer wake: `esp_sleep_enable_timer_wakeup(sleepIntervalMs * 1000ULL)`
   - Configure button wake: ext0 (Button A, LOW) + ext1 (Button B/C, ANY_HIGH)
@@ -40,92 +45,55 @@ Introduce `PowerManager` to orchestrate power states. Integrate with `InputRoute
     - If new messages: navigate to Messages screen (future)
     - Else: re-enter DeepSleepCycle
 
+**Charging/USB Detection:**
+- Preferred: Use `VBUS_SENSE_PIN` if wired to detect 5V presence (HIGH = USB present)
+- Fallback heuristic: treat as USB-powered if `batteryVoltage > 4.0V`
+- Charging heuristic: `isCharging = isUsbPowered && (batteryPercent < 99)`
+- Behavior: While USB-powered/charging, do not dim or sleep; inactivity timer is held/reset
+- When USB disconnects, `lastActivityMs` is reset to start normal inactivity countdown
+
 **Backlight Control:**
 - Off mode: `digitalWrite(TFT_BACKLITE, LOW)` (immediate power savings)
 - Future: PWM dimming with configurable levels
 
 ### Input Router Integration – `src/ui/core/InputRouter.h`
 - Already centralizes all input handling
-- **Add**: Call `PowerManager::notifyActivity()` on any press/release/long-press
+- Add: Call `PowerManager::notifyActivity()` on any press/release/long-press
 - Preserve existing A/B auto-repeat and long-press back behavior
 
 ### Screen Manager Integration – `src/ui/core/ScreenManager.*`
 - Clear screen before entering any screen (already implemented)
-- **Add**: Skip splash on deep-sleep wake - `PowerManager::onWake()` determines initial screen
+- Add: Skip splash on deep-sleep wake - `PowerManager::onWake()` determines initial screen
 
 ### Settings Integration – `src/config/SettingsManager.*`
-**Add config keys with defaults:**
+Add config keys with defaults:
 - `inactivityTimeoutMs` (default: 10000) - Time before dimming backlight
 - `dimGraceMs` (default: 2000) - Grace period before deep sleep
 - `deepSleepIntervalMs` (default: 60000) - Periodic wake interval
-- `backlightDimMode` (default: "off") - Future: "off" | "dim"
-- `backlightDimLevel` (default: 50) - Future: PWM level 0-100%
+- Future: `backlightDimMode`/`backlightDimLevel`
 
 ### Settings UI – `src/ui/screens/SettingsScreen.*`
-**Add "Power" submenu with options:**
-- "Sleep Now" → `PowerManager::requestSleepNow()` (timer wake enabled)
-- "Power Off" → `PowerManager::requestPowerOff()` (no timer wake, button wake only)
-- "Inactivity Timeout" → Off/10s/30s/60s
-- "Sleep Check Interval" → 30s/60s/5m
-- "Backlight Dim" → Off/On (future)
-- "Dim Level" → 10-100% (future)
+- Add "Power" item
+  - MVP: triggers `PowerManager::requestSleepNow()`
+  - Future: Power submenu: Sleep Now, Power Off, set timeouts/interval
 
 ## Battery Monitoring Strategy
 
 ### MAX17048 Fuel Gauge (Built-in)
 From `docs/pinout-reference.md`: **Battery Monitor MAX17048 (I2C 0x36)**
 
-**Advantages:**
+Advantages:
 - Hardware fuel gauge with accurate SoC (State of Charge)
 - Built-in voltage, current, and capacity tracking
 - No external components needed (built into ESP32-S3 Feather)
 - Temperature compensation and aging compensation
 - Eliminates need for voltage dividers or ADC calibration
 
-**Implementation:**
+Implementation:
 ```cpp
 // In PowerManager.cpp
 #include <Wire.h>
 // Use MAX17048 library or direct I2C commands
-
-class PowerManager {
-private:
-    static float batteryVoltage;
-    static int batteryPercent;
-    static float voltageEMA;  // Exponential moving average for smoothing
-    static const float EMA_ALPHA = 0.2f;
-    
-public:
-    static void initMAX17048() {
-        Wire.begin();
-        // Initialize MAX17048 on I2C address 0x36
-        // Configure alert thresholds, sleep mode, etc.
-        // Set configuration for LiPo battery profile
-    }
-    
-    static void updateBattery() {
-        // Read from MAX17048 registers
-        float newVoltage = readMAX17048Voltage();
-        int newPercent = readMAX17048SOC();
-        
-        // Apply EMA smoothing to voltage for display stability
-        voltageEMA = (EMA_ALPHA * newVoltage) + ((1.0f - EMA_ALPHA) * voltageEMA);
-        
-        batteryVoltage = voltageEMA;
-        batteryPercent = newPercent; // SOC already accurate from fuel gauge
-    }
-    
-private:
-    static float readMAX17048Voltage() {
-        // Read VCELL register (0x02) - 16-bit value
-        // Formula: Voltage = (register_value * 78.125) / 1000000 V
-    }
-    
-    static int readMAX17048SOC() {
-        // Read SOC register (0x04) - 16-bit value  
-        // Formula: SOC = register_value / 256 %
-    }
-};
 ```
 
 ## Deep Sleep Wake and Splash Skip

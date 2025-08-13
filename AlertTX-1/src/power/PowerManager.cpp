@@ -1,6 +1,7 @@
 #include "PowerManager.h"
 #include <WiFi.h>
 #include "../config/SettingsManager.h"
+#include "../config/settings.h"
 
 // Some cores use TFT_BACKLIGHT, others expose TFT_BACKLITE. Prefer TFT_BACKLIGHT if defined.
 #if defined(TFT_BACKLIGHT)
@@ -26,12 +27,20 @@ float PowerManager::batteryVoltage = 0.0f;
 int PowerManager::batteryPercent = 0;
 float PowerManager::voltageEMA = 0.0f;
 
+bool PowerManager::usbPowered = false;
+bool PowerManager::charging = false;
+
 bool PowerManager::s_lastWakeWasFromSleep = false;
 bool PowerManager::s_hasNewMessagesOnWake = false;
 
 void PowerManager::begin() {
     pinMode(ALERTTX_BACKLIGHT_PIN, OUTPUT);
     setBacklight(true);
+
+    // Optional VBUS sense pin setup if available
+    if (VBUS_SENSE_PIN >= 0) {
+        pinMode(VBUS_SENSE_PIN, INPUT);
+    }
 
     Wire.begin();
     initMAX17048();
@@ -70,6 +79,15 @@ bool PowerManager::onWake() {
 
 void PowerManager::update(unsigned long nowMs) {
     updateBattery();
+    updateChargingStatus();
+
+    // If USB powered or charging, keep device awake and reset inactivity
+    if (usbPowered || charging) {
+        if (!backlightEnabled) setBacklight(true);
+        lastActivityMs = nowMs; // prevent dim/sleep while powered/charging
+        currentState = ACTIVE;
+        return;
+    }
 
     // Simple state machine driven by inactivity
     uint32_t inactivityTimeoutMs = SettingsManager::getInactivityTimeoutMs();
@@ -112,18 +130,27 @@ void PowerManager::notifyActivity() {
 
 void PowerManager::requestSleepNow() {
     Serial.println("PowerManager: Sleep Now requested");
+    // Do not sleep if actively charging/USB powered
+    updateChargingStatus();
+    if (usbPowered || charging) {
+        Serial.println("PowerManager: Skipping sleep because device is USB-powered/charging");
+        return;
+    }
     configureSleepWakeSources(true);
     enterDeepSleep();
 }
 
 void PowerManager::requestPowerOff() {
     Serial.println("PowerManager: Power Off requested (button wake only)");
+    // Allow power off regardless of USB power, but still safe to proceed
     configureSleepWakeSources(false);
     enterDeepSleep();
 }
 
 float PowerManager::getBatteryVoltage() { return batteryVoltage; }
 int PowerManager::getBatteryPercent() { return batteryPercent; }
+bool PowerManager::isUsbPowered() { return usbPowered; }
+bool PowerManager::isCharging() { return charging; }
 PowerManager::PowerState PowerManager::getCurrentState() { return currentState; }
 bool PowerManager::lastWakeWasFromSleep() { return s_lastWakeWasFromSleep; }
 bool PowerManager::hasNewMessagesOnWake() { return s_hasNewMessagesOnWake; }
@@ -179,8 +206,7 @@ float PowerManager::readMAX17048Voltage() {
     if (!readRegister16(0x02, raw)) {
         return batteryVoltage > 0.0f ? batteryVoltage : 3.90f;
     }
-    // VCELL: 12-bit fixed point 14,2? Datasheet: VCELL LSB = 78.125 uV
-    // Voltage (V) = raw * 78.125e-6
+    // VCELL LSB = 78.125 uV
     float v = (float)raw * 78.125f / 1000000.0f;
     return v;
 }
@@ -209,6 +235,25 @@ void PowerManager::updateBattery() {
 
     batteryVoltage = voltageEMA;
     batteryPercent = newPercent;
+}
+
+void PowerManager::updateChargingStatus() {
+    // USB power: via optional VBUS sense pin if available
+    bool prevUsb = usbPowered;
+    if (VBUS_SENSE_PIN >= 0) {
+        usbPowered = digitalRead(VBUS_SENSE_PIN) == HIGH;
+    } else {
+        // Fallback heuristic: consider USB present if WiFi is powered and voltage > 4.0V
+        usbPowered = (batteryVoltage > 4.0f);
+    }
+
+    // Charging heuristic: if usb is present and SoC < ~99, assume charging
+    charging = usbPowered && (batteryPercent < 99);
+
+    // If we just disconnected from USB, reset inactivity timer to start countdown
+    if (prevUsb && !usbPowered) {
+        lastActivityMs = millis();
+    }
 }
 
 void PowerManager::handlePeriodicWakeBackground() {
