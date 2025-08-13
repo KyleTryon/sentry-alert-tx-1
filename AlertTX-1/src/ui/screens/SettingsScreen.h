@@ -37,6 +37,7 @@ private:
     
     // Child screen for theme selection
     ThemeSelectionScreen* themeSelectionScreen;
+    class SystemInfoScreen* systemInfoScreen;
     
     // Static instance for callbacks
     static SettingsScreen* instance;
@@ -70,6 +71,7 @@ private:
     void createMenuItems();
     void cycleRingtone();
     void navigateToThemeSelection();
+    void navigateToSystemInfo();
     void showSystemInfo();
     
     // Screen management

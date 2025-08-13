@@ -30,10 +30,28 @@ private:
     // NVS Configuration (must be under 15 characters)
     static const char* NAMESPACE;    // "alerttx1"
     static const char* THEME_KEY;    // "theme_idx"
+    // Network/MQTT keys
+    // (Network settings now build-time only; keys retained for future optional use)
+    static const char* WIFI_SSID_KEY;       // "wifi_ssid"
+    static const char* WIFI_PASSWORD_KEY;   // "wifi_pass"
+    static const char* MQTT_BROKER_KEY;     // "mqtt_host"
+    static const char* MQTT_PORT_KEY;       // "mqtt_port"
+    static const char* MQTT_CLIENT_ID_KEY;  // "mqtt_cid"
+    static const char* MQTT_SUB_TOPIC_KEY;  // "mqtt_sub"
+    static const char* MQTT_PUB_TOPIC_KEY;  // "mqtt_pub"
     
     // Validation constants
     static const int MIN_THEME_INDEX = 0;
     static const int MAX_THEME_INDEX = 4; // 5 themes: 0-4
+    
+    // Defaults
+    static constexpr const char* DEFAULT_WIFI_SSID = "";
+    static constexpr const char* DEFAULT_WIFI_PASSWORD = "";
+    static constexpr const char* DEFAULT_MQTT_BROKER = "localhost";
+    static const int DEFAULT_MQTT_PORT = 1883;
+    static constexpr const char* DEFAULT_MQTT_CLIENT_ID = "AlertTX1";
+    static constexpr const char* DEFAULT_MQTT_SUB_TOPIC = "alerttx1/messages";
+    static constexpr const char* DEFAULT_MQTT_PUB_TOPIC = "alerttx1/status";
     
 public:
     /**
@@ -86,6 +104,28 @@ private:
      * @return true if valid (0-3), false otherwise
      */
     static bool isValidThemeIndex(int index);
+
+    // WiFi/MQTT persisted configuration
+public:
+    // Getters
+    // Network getters are still available for read-only display if needed
+    static String getWifiSsid();
+    static String getWifiPassword();
+    static String getMqttBroker();
+    static int getMqttPort();
+    static String getMqttClientId();
+    static String getMqttSubscribeTopic();
+    static String getMqttPublishTopic();
+
+    // Setters
+    // Setters no longer needed for immutable build-time config, but kept for potential future UI
+    static void setWifiSsid(const String& ssid);
+    static void setWifiPassword(const String& password);
+    static void setMqttBroker(const String& broker);
+    static void setMqttPort(int port);
+    static void setMqttClientId(const String& clientId);
+    static void setMqttSubscribeTopic(const String& topic);
+    static void setMqttPublishTopic(const String& topic);
 };
 
 #endif // SETTINGSMANAGER_H

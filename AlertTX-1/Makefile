@@ -1,7 +1,7 @@
 # Makefile for Alert TX-1
 # Automates ringtone data generation, icon conversion, and Arduino build process
 
-.PHONY: all clean ringtones icons build upload monitor help dev detect-board libraries python-deps
+.PHONY: all clean ringtones icons build upload monitor help dev detect-board libraries python-deps gen-secrets
 
 # Install required Python dependencies
 python-deps:
@@ -34,11 +34,28 @@ icons:
 	@echo "🎨 Converting PNG icons to header files..."
 	@mkdir -p src/icons
 	@python3 tools/png_to_header.py data/icons --output src/icons
-	@python3 tools/generate_icon_definitions.py
 	@echo "✅ Icon conversion complete"
 
+# Generate a build-time secrets header from environment or .env file (ignored by git)
+gen-secrets:
+	@echo "🔐 Generating build-time secrets header (generated_secrets.h)"
+	@out="src/config/generated_secrets.h"; \
+	if [ ! -d src/config ]; then mkdir -p src/config; fi; \
+	if [ -f .env ]; then set -a; . ./.env; set +a; fi; \
+	{ \
+	  echo "// Auto-generated at build time. Do NOT commit."; \
+	  echo "#pragma once"; \
+	  printf "#define ALERTTX1_ENV_WIFI_SSID            \"%s\"\n" "$${WIFI_SSID:-}"; \
+	  printf "#define ALERTTX1_ENV_WIFI_PASSWORD        \"%s\"\n" "$${WIFI_PASSWORD:-}"; \
+	  printf "#define ALERTTX1_ENV_MQTT_BROKER          \"%s\"\n" "$${MQTT_BROKER:-localhost}"; \
+	  printf "#define ALERTTX1_ENV_MQTT_PORT            %s\n" "$${MQTT_PORT:-1883}"; \
+	  printf "#define ALERTTX1_ENV_MQTT_CLIENT_ID       \"%s\"\n" "$${MQTT_CLIENT_ID:-AlertTX1}"; \
+	  printf "#define ALERTTX1_ENV_MQTT_SUBSCRIBE_TOPIC \"%s\"\n" "$${MQTT_TOPIC_SUBSCRIBE:-alerttx1/messages}"; \
+	  printf "#define ALERTTX1_ENV_MQTT_PUBLISH_TOPIC   \"%s\"\n" "$${MQTT_TOPIC_PUBLISH:-alerttx1/status}"; \
+	} > "$$out" && echo "✅ Secrets header written" || { echo "❌ Failed to write secrets header"; exit 1; }
+
 # Build Arduino project (always includes libraries, ringtones and icons)
-build: libraries ringtones icons
+build: libraries ringtones icons gen-secrets
 	@echo "🔨 Building Arduino project..."
 	@arduino-cli compile --fqbn esp32:esp32:adafruit_feather_esp32s3_reversetft .
 	@echo "✅ Build complete"

@@ -1,5 +1,11 @@
 #include "MQTTClient.h"
-#include "../config/settings.h"
+#if defined(__has_include)
+#  if __has_include("../config/generated_secrets.h")
+#    include "../config/generated_secrets.h"
+#  elif __has_include("src/config/generated_secrets.h")
+#    include "src/config/generated_secrets.h"
+#  endif
+#endif
 
 // Default constructor for simple usage
 MQTTClient::MQTTClient() : _client(_espClient) {
@@ -32,9 +38,31 @@ void MQTTClient::begin(const char* ssid, const char* password, const char* mqttB
   _client.setServer(_mqttBroker, _mqttPort);
 }
 
-// Simple begin method using settings.h constants
+// Simple begin method using build-time generated values from .env
 void MQTTClient::begin() {
-  begin(WIFI_SSID, WIFI_PASSWORD, MQTT_BROKER, MQTT_PORT, MQTT_CLIENT_ID);
+  const char* ssid = "";
+  const char* password = "";
+  const char* broker = "localhost";
+  int port = 1883;
+  const char* clientId = "AlertTX1";
+
+  #ifdef ALERTTX1_ENV_WIFI_SSID
+    ssid = ALERTTX1_ENV_WIFI_SSID;
+  #endif
+  #ifdef ALERTTX1_ENV_WIFI_PASSWORD
+    password = ALERTTX1_ENV_WIFI_PASSWORD;
+  #endif
+  #ifdef ALERTTX1_ENV_MQTT_BROKER
+    broker = ALERTTX1_ENV_MQTT_BROKER;
+  #endif
+  #ifdef ALERTTX1_ENV_MQTT_PORT
+    port = ALERTTX1_ENV_MQTT_PORT;
+  #endif
+  #ifdef ALERTTX1_ENV_MQTT_CLIENT_ID
+    clientId = ALERTTX1_ENV_MQTT_CLIENT_ID;
+  #endif
+
+  begin(ssid, password, broker, port, clientId);
 }
 
 void MQTTClient::loop() {

@@ -1,6 +1,9 @@
 #include "SettingsScreen.h"
 #include "../core/ScreenManager.h"
 #include "ThemeSelectionScreen.h"
+#include "SystemInfoScreen.h"
+#include "../../config/SettingsManager.h"
+#include <WiFi.h>
 
 // Static members
 SettingsScreen* SettingsScreen::instance = nullptr;
@@ -103,8 +106,7 @@ void SettingsScreen::onThemesSelected() {
 
 void SettingsScreen::onSystemInfoSelected() {
     Serial.println("SettingsScreen: System Info selected");
-    
-    showSystemInfo();
+    navigateToSystemInfo();
 }
 
 // Static callback wrappers
@@ -175,8 +177,30 @@ void SettingsScreen::navigateToThemeSelection() {
     }
 }
 
+void SettingsScreen::navigateToSystemInfo() {
+    if (!systemInfoScreen) {
+        Serial.println("ERROR: SystemInfoScreen not initialized!");
+        return;
+    }
+    ScreenManager* manager = GlobalScreenManager::getInstance();
+    if (manager) {
+        manager->pushScreen(systemInfoScreen);
+        Serial.println("SettingsScreen: Navigated to system info");
+    } else {
+        Serial.println("ERROR: No global screen manager available!");
+    }
+}
+
 void SettingsScreen::showSystemInfo() {
     Serial.println("=== SYSTEM INFORMATION ===");
+    // WiFi status
+    bool wifiConnected = (WiFi.status() == WL_CONNECTED);
+    String activeSsid = wifiConnected ? WiFi.SSID() : SettingsManager::getWifiSsid();
+    Serial.printf("WiFi SSID: %s\n", activeSsid.c_str());
+    Serial.printf("WiFi connected: %s\n", wifiConnected ? "Yes" : "No");
+    if (wifiConnected) {
+        Serial.printf("IP address: %s\n", WiFi.localIP().toString().c_str());
+    }
     Serial.printf("Free heap: %u bytes\n", ESP.getFreeHeap());
     Serial.printf("CPU frequency: %u MHz\n", ESP.getCpuFreqMHz());
     Serial.printf("Flash size: %u KB\n", ESP.getFlashChipSize() / 1024);
@@ -195,6 +219,7 @@ void SettingsScreen::initializeChildScreens() {
     
     // Create theme selection screen
     themeSelectionScreen = new ThemeSelectionScreen(display);
+    systemInfoScreen = new SystemInfoScreen(display);
     
     Serial.println("SettingsScreen: Child screens initialized");
 }

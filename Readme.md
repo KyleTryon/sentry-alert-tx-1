@@ -12,7 +12,7 @@ make upload        # build + upload (auto-detect board)
 make dev           # optional: upload + serial monitor
 ```
 
-Configure Wi‑Fi/MQTT in `AlertTX-1/src/config/settings.h`.
+Configure Wi‑Fi/MQTT using `SettingsManager` (persisted in NVS).
 
 ## Docs
 

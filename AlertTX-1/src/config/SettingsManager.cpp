@@ -1,9 +1,23 @@
 #include "SettingsManager.h"
+#if defined(__has_include)
+#  if __has_include("generated_secrets.h")
+#    include "generated_secrets.h"
+#  elif __has_include("src/config/generated_secrets.h")
+#    include "src/config/generated_secrets.h"
+#  endif
+#endif
 
 // Static member definitions
 Preferences SettingsManager::prefs;
 const char* SettingsManager::NAMESPACE = "alerttx1";
 const char* SettingsManager::THEME_KEY = "theme_idx";
+const char* SettingsManager::WIFI_SSID_KEY = "wifi_ssid";
+const char* SettingsManager::WIFI_PASSWORD_KEY = "wifi_pass";
+const char* SettingsManager::MQTT_BROKER_KEY = "mqtt_host";
+const char* SettingsManager::MQTT_PORT_KEY = "mqtt_port";
+const char* SettingsManager::MQTT_CLIENT_ID_KEY = "mqtt_cid";
+const char* SettingsManager::MQTT_SUB_TOPIC_KEY = "mqtt_sub";
+const char* SettingsManager::MQTT_PUB_TOPIC_KEY = "mqtt_pub";
 
 void SettingsManager::begin() {
     Serial.println("SettingsManager: Initializing NVS...");
@@ -18,6 +32,29 @@ void SettingsManager::begin() {
         if (!isInitialized()) {
             Serial.println("SettingsManager: First run detected, initializing defaults");
             setThemeIndex(0); // Set default theme
+
+            // Seed WiFi/MQTT from generated_secrets.h if provided at build time
+            #ifdef ALERTTX1_ENV_WIFI_SSID
+              if (String(ALERTTX1_ENV_WIFI_SSID).length() > 0) setWifiSsid(ALERTTX1_ENV_WIFI_SSID);
+            #endif
+            #ifdef ALERTTX1_ENV_WIFI_PASSWORD
+              setWifiPassword(ALERTTX1_ENV_WIFI_PASSWORD);
+            #endif
+            #ifdef ALERTTX1_ENV_MQTT_BROKER
+              if (String(ALERTTX1_ENV_MQTT_BROKER).length() > 0) setMqttBroker(ALERTTX1_ENV_MQTT_BROKER);
+            #endif
+            #ifdef ALERTTX1_ENV_MQTT_PORT
+              setMqttPort(ALERTTX1_ENV_MQTT_PORT);
+            #endif
+            #ifdef ALERTTX1_ENV_MQTT_CLIENT_ID
+              setMqttClientId(ALERTTX1_ENV_MQTT_CLIENT_ID);
+            #endif
+            #ifdef ALERTTX1_ENV_MQTT_SUBSCRIBE_TOPIC
+              setMqttSubscribeTopic(ALERTTX1_ENV_MQTT_SUBSCRIBE_TOPIC);
+            #endif
+            #ifdef ALERTTX1_ENV_MQTT_PUBLISH_TOPIC
+              setMqttPublishTopic(ALERTTX1_ENV_MQTT_PUBLISH_TOPIC);
+            #endif
         }
         
         printDebugInfo();
@@ -83,6 +120,13 @@ void SettingsManager::resetToDefaults() {
     
     // Set default values
     setThemeIndex(0);
+    setWifiSsid(DEFAULT_WIFI_SSID);
+    setWifiPassword(DEFAULT_WIFI_PASSWORD);
+    setMqttBroker(DEFAULT_MQTT_BROKER);
+    setMqttPort(DEFAULT_MQTT_PORT);
+    setMqttClientId(DEFAULT_MQTT_CLIENT_ID);
+    setMqttSubscribeTopic(DEFAULT_MQTT_SUB_TOPIC);
+    setMqttPublishTopic(DEFAULT_MQTT_PUB_TOPIC);
     
     Serial.println("SettingsManager: Settings reset complete");
 }
@@ -104,10 +148,98 @@ void SettingsManager::printDebugInfo() {
     #endif
     #endif
     
-    Serial.printf("Available methods: getInt, putInt, isKey, clear\n");
+    Serial.printf("Available methods: getInt, putInt, isKey, clear, getString, putString\n");
     Serial.println("==================================");
 }
 
 bool SettingsManager::isValidThemeIndex(int index) {
     return (index >= MIN_THEME_INDEX && index <= MAX_THEME_INDEX);
 }
+
+// WiFi/MQTT getters
+String SettingsManager::getWifiSsid() {
+    String v = prefs.getString(WIFI_SSID_KEY, "");
+    if (v.length() == 0) {
+        #ifdef ALERTTX1_ENV_WIFI_SSID
+        return String(ALERTTX1_ENV_WIFI_SSID);
+        #else
+        return String(DEFAULT_WIFI_SSID);
+        #endif
+    }
+    return v;
+}
+String SettingsManager::getWifiPassword() {
+    String v = prefs.getString(WIFI_PASSWORD_KEY, "");
+    if (v.length() == 0) {
+        #ifdef ALERTTX1_ENV_WIFI_PASSWORD
+        return String(ALERTTX1_ENV_WIFI_PASSWORD);
+        #else
+        return String(DEFAULT_WIFI_PASSWORD);
+        #endif
+    }
+    return v;
+}
+String SettingsManager::getMqttBroker() {
+    String v = prefs.getString(MQTT_BROKER_KEY, "");
+    if (v.length() == 0) {
+        #ifdef ALERTTX1_ENV_MQTT_BROKER
+        return String(ALERTTX1_ENV_MQTT_BROKER);
+        #else
+        return String(DEFAULT_MQTT_BROKER);
+        #endif
+    }
+    return v;
+}
+int SettingsManager::getMqttPort() {
+    int v = prefs.getInt(MQTT_PORT_KEY, -1);
+    if (v <= 0) {
+        #ifdef ALERTTX1_ENV_MQTT_PORT
+        return ALERTTX1_ENV_MQTT_PORT;
+        #else
+        return DEFAULT_MQTT_PORT;
+        #endif
+    }
+    return v;
+}
+String SettingsManager::getMqttClientId() {
+    String v = prefs.getString(MQTT_CLIENT_ID_KEY, "");
+    if (v.length() == 0) {
+        #ifdef ALERTTX1_ENV_MQTT_CLIENT_ID
+        return String(ALERTTX1_ENV_MQTT_CLIENT_ID);
+        #else
+        return String(DEFAULT_MQTT_CLIENT_ID);
+        #endif
+    }
+    return v;
+}
+String SettingsManager::getMqttSubscribeTopic() {
+    String v = prefs.getString(MQTT_SUB_TOPIC_KEY, "");
+    if (v.length() == 0) {
+        #ifdef ALERTTX1_ENV_MQTT_SUBSCRIBE_TOPIC
+        return String(ALERTTX1_ENV_MQTT_SUBSCRIBE_TOPIC);
+        #else
+        return String(DEFAULT_MQTT_SUB_TOPIC);
+        #endif
+    }
+    return v;
+}
+String SettingsManager::getMqttPublishTopic() {
+    String v = prefs.getString(MQTT_PUB_TOPIC_KEY, "");
+    if (v.length() == 0) {
+        #ifdef ALERTTX1_ENV_MQTT_PUBLISH_TOPIC
+        return String(ALERTTX1_ENV_MQTT_PUBLISH_TOPIC);
+        #else
+        return String(DEFAULT_MQTT_PUB_TOPIC);
+        #endif
+    }
+    return v;
+}
+
+// WiFi/MQTT setters
+void SettingsManager::setWifiSsid(const String& ssid) { prefs.putString(WIFI_SSID_KEY, ssid); }
+void SettingsManager::setWifiPassword(const String& password) { prefs.putString(WIFI_PASSWORD_KEY, password); }
+void SettingsManager::setMqttBroker(const String& broker) { prefs.putString(MQTT_BROKER_KEY, broker); }
+void SettingsManager::setMqttPort(int port) { prefs.putInt(MQTT_PORT_KEY, port); }
+void SettingsManager::setMqttClientId(const String& clientId) { prefs.putString(MQTT_CLIENT_ID_KEY, clientId); }
+void SettingsManager::setMqttSubscribeTopic(const String& topic) { prefs.putString(MQTT_SUB_TOPIC_KEY, topic); }
+void SettingsManager::setMqttPublishTopic(const String& topic) { prefs.putString(MQTT_PUB_TOPIC_KEY, topic); }

@@ -59,4 +59,8 @@ dist/
 # credentials.h
 # config/local_settings.h
 
+# Generated secrets header (created by Makefile)
+AlertTX-1/src/config/generated_secrets.h
+
 AlertTX-1/src/icons/*.h
+!AlertTX-1/src/icons/Icon.h
