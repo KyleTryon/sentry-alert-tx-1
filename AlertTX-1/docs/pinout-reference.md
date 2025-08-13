@@ -50,14 +50,6 @@ This document provides a comprehensive reference for the pin assignments used in
 | **EN** | Enable | 3.3V regulator enable |
 | **RST** | Reset | Board reset |
 
-### Optional Sense Pins (Project Mods)
-
-These are optional and not connected by default. If you mod your hardware, you can set the GPIO numbers in `src/config/settings.h`.
-
-| Function | GPIO | Description |
-|----------|------|-------------|
-| **VBUS Sense** | User-defined | Detects 5V USB presence (via voltage divider) |
-
 ## Detailed Pin Information
 
 ### Button Pins
@@ -256,4 +248,4 @@ void testPins() {
 
 - **v1.0**: Initial pinout documentation based on Adafruit ESP32-S3 Reverse TFT Feather
 - **v1.1**: Updated with actual GPIO assignments and conflict resolution 
-- **v1.2**: Added optional sense pins for USB (VBUS) and CHG LED and linked Adafruit power docs 
+- **v1.2**: Removed optional VBUS sense section to reflect stock hardware 

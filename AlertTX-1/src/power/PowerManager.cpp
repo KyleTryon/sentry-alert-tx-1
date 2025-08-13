@@ -37,10 +37,6 @@ void PowerManager::begin() {
     pinMode(ALERTTX_BACKLIGHT_PIN, OUTPUT);
     setBacklight(true);
 
-    // Optional VBUS sense pin setup if available
-    if (VBUS_SENSE_PIN >= 0) {
-        pinMode(VBUS_SENSE_PIN, INPUT);
-    }
 
     Wire.begin();
     initMAX17048();
@@ -239,12 +235,9 @@ void PowerManager::updateBattery() {
 void PowerManager::updateChargingStatus() {
     // USB power: via optional VBUS sense pin if available
     bool prevUsb = usbPowered;
-    if (VBUS_SENSE_PIN >= 0) {
-        usbPowered = digitalRead(VBUS_SENSE_PIN) == HIGH;
-    } else {
-        // Fallback heuristic: consider USB present if voltage > 4.0V
-        usbPowered = (batteryVoltage > 4.0f);
-    }
+    // Heuristic: consider USB present if battery voltage is above ~4.0V
+    // MAX17048 reports voltage at the cell; 4.0V+ typically indicates USB is connected/charging
+    usbPowered = (batteryVoltage > 4.0f);
 
     // No separate charging heuristic; USB presence is the only gating condition we use
 

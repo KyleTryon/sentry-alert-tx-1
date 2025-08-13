@@ -15,19 +15,18 @@ References:
 ## Hardware References
 - **Pinout**: `docs/pinout-reference.md` - Battery Monitor MAX17048 (I2C 0x36), VBAT, wake sources, TFT_BACKLITE (GPIO45)
 - **Hardware Setup**: `docs/hardware-setup.md` - Display power, pin assignments, LiPo 400mAh specs
-- **USB Power Sense (Optional)**: `src/config/settings.h` `VBUS_SENSE_PIN` can be wired to a GPIO through a safe divider to detect 5V presence.
 
 ## Architecture Overview
 Introduce `PowerManager` to orchestrate power states. Integrate with `InputRouter` for inactivity tracking and with `ScreenManager` for skip-splash behavior on wake.
 
 ### New Module: `src/power/PowerManager.{h,cpp}`
 **Responsibilities:**
-- `begin()`: Initialize MAX17048, backlight control (GPIO45), wake sources, optional VBUS sense
+- `begin()`: Initialize MAX17048, backlight control (GPIO45)
 - `onWake()`: Run at boot to handle splash skip and state carryover
 - `update(nowMs)`: State machine transitions: Active → IdleDim → DeepSleepCycle
 - `requestSleepNow()` / `requestPowerOff()`: Invoked from Settings to enter deep sleep
 - `getBatteryVoltage()`, `getBatteryPercent()`: MAX17048-based readings with EMA smoothing
-- `isUsbPowered()`: USB presence detection; disable dim/sleep while true
+- `isUsbPowered()`: USB presence detection; disable dim/sleep while true (voltage heuristic)
 - Config getters read from `SettingsManager`
 
 **Power State Machine:**
@@ -50,8 +49,7 @@ Introduce `PowerManager` to orchestrate power states. Integrate with `InputRoute
     - Else: re-enter DeepSleepCycle
 
 **USB Detection:**
-- Preferred: Use `VBUS_SENSE_PIN` if wired to detect 5V presence (HIGH = USB present)
-- Fallback heuristic: treat as USB present if `batteryVoltage > 4.0V` (approximate)
+- Heuristic: treat as USB present if `batteryVoltage > 4.0V` (approximate)
 - Behavior: While USB present, do not dim or sleep; inactivity timer is held/reset
 - When USB disconnects, `lastActivityMs` is reset to start normal inactivity countdown
 
