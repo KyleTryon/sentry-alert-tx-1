@@ -50,6 +50,18 @@ This document provides a comprehensive reference for the pin assignments used in
 | **EN** | Enable | 3.3V regulator enable |
 | **RST** | Reset | Board reset |
 
+### Optional Sense Pins (Project Mods)
+
+These are optional and not connected by default. If you mod your hardware, you can set the GPIO numbers in `src/config/settings.h`.
+
+| Function | GPIO | Description |
+|----------|------|-------------|
+| **VBUS Sense** | User-defined | Detects 5V USB presence (via voltage divider) |
+| **CHG LED Sense** | User-defined | Reads charger LED state to infer charging (debounced ~1.5s) |
+
+- The CHG LED is hardware-controlled as described in Adafruit’s guide, and not exposed as a GPIO by default. You may add an optical or electrical sense circuit to a spare GPIO if needed. See Adafruit’s Power Management docs for behavior details. 
+  - Reference: [Adafruit Power Management](https://learn.adafruit.com/esp32-s3-reverse-tft-feather/power-management)
+
 ## Detailed Pin Information
 
 ### Button Pins
@@ -118,15 +130,11 @@ The built-in TFT display uses the following pins:
 - **No battery**: LED may blink rapidly (expected behavior)
 - **Not programmable**: This LED is controlled by the charging circuit
 
-**NeoPixel (Programmable):**
-- **NeoPixel**: RGB LED at GPIO33
-- **Programmable**: Can be controlled via code for status indicators
-- **Power**: Controlled by GPIO21 (NEOPIXEL_POWER)
-- **Usage**: Use for visual alerts, status indicators, etc.
+Reference: [Adafruit Power Management](https://learn.adafruit.com/esp32-s3-reverse-tft-feather/power-management)
 
 ### Button Behavior Differences
 
-**Important**: The built-in buttons have different default states and behaviors:
+Important: The built-in buttons have different default states and behaviors:
 
 | Button | Default State | When Pressed | Arduino Code |
 |--------|---------------|--------------|--------------|
@@ -164,7 +172,6 @@ This difference is important for deep sleep wake-up functionality and proper but
 | GPIO9 | D9 | GPIO, ADC1_CH8, Touch T9 |
 | GPIO10 | D10 | GPIO, ADC1_CH9, Touch T10 |
 | GPIO11 | D11 | GPIO, ADC2_CH0, Touch T11 |
-| GPIO12 | D12 | GPIO, ADC2_CH1, Touch T12 |
 | GPIO16 | A2 | GPIO, ADC2_CH5, Touch T16 |
 | GPIO17 | A1 | GPIO, ADC2_CH6, Touch T17 |
 | GPIO18 | A0 | GPIO, ADC2_CH7, Touch T18 |
@@ -173,60 +180,6 @@ This difference is important for deep sleep wake-up functionality and proper but
 | GPIO37 | MISO | GPIO, SPI MISO |
 | GPIO38 | RX | GPIO, UART RX |
 | GPIO39 | TX | GPIO, UART TX |
-
-## Wiring Diagram
-
-```
-Adafruit ESP32-S3 Reverse TFT Feather
-┌─────────────────────────────────────────────────┐
-│                                                 │
-│  ┌─────────┐    ┌─────────────────────────────┐ │
-│  │ Button  │    │                             │ │
-│  │    A    │────┤ GPIO0 (Built-in)            │ │
-│  │  (D0)   │    │                             │ │
-│  └─────────┘    │                             │ │
-│                 │                             │ │
-│  ┌─────────┐    │                             │ │
-│  │ Button  │────┤ GPIO1 (Built-in)            │ │
-│  │    B    │    │                             │ │
-│  │  (D1)   │    │                             │ │
-│  └─────────┘    │                             │ │
-│                 │                             │ │
-│  ┌─────────┐    │                             │ │
-│  │ Button  │────┤ GPIO2 (Built-in)            │ │
-│  │    C    │    │                             │ │
-│  │  (D2)   │    │                             │ │
-│  └─────────┘    │                             │ │
-│                 │                             │ │
-│  ┌─────────┐    │                             │ │
-│  │ Buzzer  │────┤ GPIO15 (A3)                 │ │
-│  │  (+)    │    │                             │ │
-│  └─────────┘    │                             │ │
-│                 │                             │ │
-│  ┌─────────┐    │                             │ │
-│  │ 3mm LED │────┤ GPIO13 (D13) - External LED │ │
-│  │ (Green) │    │ (via 220Ω resistor)         │ │
-│  └─────────┘    │                             │ │
-│                 │                             │ │
-│  ┌─────────┐    │                             │ │
-│  │NeoPixel │────┤ GPIO33 - RGB Status LED     │ │
-│  │ (RGB)   │    │ (built-in)                  │ │
-│  └─────────┘    │                             │ │
-│                 │                             │ │
-│  ┌─────────┐    │                             │ │
-│  │  TFT    │────┤ Built-in Display            │ │
-│  │ Display │    │ (GPIO40-45)                 │ │
-│  │(built-in)│   │                             │ │
-│  └─────────┘    │                             │ │
-│                 │                             │ │
-│  ┌─────────┐    │                             │ │
-│  │ LiPo    │────┤ VBAT/GND (JST 2-PH)         │ │
-│  │ Battery │    │                             │ │
-│  └─────────┘    │                             │ │
-│                 └─────────────────────────────┘ │
-│                                                 │
-└─────────────────────────────────────────────────┘
-```
 
 ## Arduino Pin References
 
@@ -307,3 +260,4 @@ void testPins() {
 
 - **v1.0**: Initial pinout documentation based on Adafruit ESP32-S3 Reverse TFT Feather
 - **v1.1**: Updated with actual GPIO assignments and conflict resolution 
+- **v1.2**: Added optional sense pins for USB (VBUS) and CHG LED and linked Adafruit power docs 

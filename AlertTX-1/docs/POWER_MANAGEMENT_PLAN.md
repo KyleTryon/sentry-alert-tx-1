@@ -1,5 +1,9 @@
 # Power Management Plan – Alert TX-1
 
+References:
+- Adafruit ESP32-S3 Reverse TFT Feather Power Management [link](https://learn.adafruit.com/esp32-s3-reverse-tft-feather/power-management)
+- Adafruit ESP32-S3 Reverse TFT Feather Pinouts [link](https://learn.adafruit.com/esp32-s3-reverse-tft-feather/pinouts)
+
 ## Goals
 - Real battery reading with MAX17048 fuel gauge and smoothing
 - Auto-dim/backlight-off on inactivity; deep sleep after grace period
