@@ -1,0 +1,1 @@
+Blue:d=2,o=5,b=500:32p,b,c6,e,g,c6,d6,g,b,1c6,e,g,e6,1f6,e6,d6,c6,e,g,c6,d6,g,b,1c6,e,g,e6,1f6,e6,d6,c6,e,g,c6,d6,g,b,1c6,e,g,e6,1f6,e6,d6,c6,e,g,c6,b,e,g,4a

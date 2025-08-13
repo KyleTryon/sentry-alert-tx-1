@@ -1,0 +1,131 @@
+# AlertTX-1 .gitignore
+# Generated files and build artifacts
+
+# Generated ringtone data
+src/ringtones/ringtone_data.h
+
+# Cache files
+.ringtone_cache
+*.cache
+
+# Arduino build artifacts
+*.elf
+*.bin
+*.map
+*.hex
+*.dis
+*.a
+*.o
+*.d
+*.lst
+*.cpp.bak
+*.h.bak
+
+# Arduino IDE files
+*.ino.bak
+*.ino.elf
+*.ino.eep
+*.ino.hex
+*.ino.map
+*.ino.bin
+*.ino.dis
+
+# Build directories
+build/
+debug/
+release/
+.DS_Store
+Thumbs.db
+
+# IDE and editor files
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+
+# Logs and temporary files (but not library test files)
+*.log
+!lib/*/test/*.log  # Don't ignore test logs in external libraries
+*.tmp
+*.temp
+logs/
+temp/
+
+# Python cache files (for tools)
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+*.egg-info/
+.installed.cfg
+*.egg
+
+# Node.js (if using any JS tools)
+node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# Environment variables
+.env
+.env.local
+.env.development.local
+.env.test.local
+.env.production.local
+
+# Backup files
+*.bak
+*.backup
+*.old
+
+# OS generated files
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+
+# Windows
+*.lnk
+
+# Linux
+*~
+
+# Arduino CLI cache and temporary files
+.arduino15/
+arduino-cli.yaml
+
+# ESP32 specific
+*.partitions.bin
+*.bootloader.bin
+*.flash.bin
+*.app0.bin
+*.app1.bin
+
+# Project specific
+# Uncomment if you want to ignore specific project files
+# config/local_settings.h
+# credentials.h
