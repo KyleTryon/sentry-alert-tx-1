@@ -29,6 +29,7 @@
 #include "src/ui/screens/SplashScreen.h"
 #include "src/hardware/ButtonManager.h"
 #include "src/ui/core/InputRouter.h"
+#include "src/power/PowerManager.h"
 
 // Use dedicated hardware SPI pins
 Adafruit_ST7789 tft = Adafruit_ST7789(TFT_CS, TFT_DC, TFT_RST);
@@ -78,30 +79,42 @@ void setup(void) {
   Serial.println("7. Initializing button manager...");
   buttonManager.begin();
 
-  // STEP 7: Initialize Phase 2 Component Framework
-  Serial.println("8. Initializing component framework...");
+  // STEP 7: Initialize Power Manager FIRST
+  Serial.println("8. Initializing power manager...");
+  PowerManager::begin();
+  bool skipSplash = PowerManager::onWake();
+
+  // STEP 8: Initialize Phase 2 Component Framework
+  Serial.println("9. Initializing component framework...");
   screenManager = new ScreenManager(&tft);
   mainMenuScreen = new MainMenuScreen(&tft);
   splashScreen = new SplashScreen(&tft, mainMenuScreen);
   
-  // STEP 8: Set up global screen manager access
-  Serial.println("9. Setting up global screen manager...");
+  // STEP 9: Set up global screen manager access
+  Serial.println("10. Setting up global screen manager...");
   GlobalScreenManager::setInstance(screenManager);
   inputRouter = new InputRouter(screenManager, &buttonManager);
   
-  // STEP 9: Start with splash screen
-  Serial.println("10. Starting with splash screen...");
-  screenManager->pushScreen(splashScreen);
+  // STEP 10: Choose initial screen based on wake cause
+  if (skipSplash) {
+    Serial.println("Wake from deep sleep detected - skipping splash");
+    screenManager->pushScreen(mainMenuScreen);
+  } else {
+    Serial.println("Cold boot detected - showing splash screen");
+    screenManager->pushScreen(splashScreen);
+  }
   
   Serial.println("=== Phase 2 Component Framework Ready! ===");
-  Serial.println("Showing splash screen for 2 seconds...");
-  Serial.println("A = Up, B = Down, C = Select (or press any key to skip splash)");
+  Serial.println("A = Up, B = Down, C = Select");
 }
 
 void loop() {
   // Route input centrally
   inputRouter->update();
   
+  // Power management update
+  PowerManager::update(millis());
+
   // Update and draw the Phase 2 component framework
   screenManager->update();
   screenManager->draw();

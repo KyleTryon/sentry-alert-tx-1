@@ -59,11 +59,16 @@ public:
     void onRingtoneSelected();
     void onThemesSelected();  // Navigate to theme selection screen
     void onSystemInfoSelected();
+    void onPowerSelected();
+    static void powerCallback();
     
     // Static callback wrappers
     static void ringtoneCallback();
     static void themeCallback();
     static void systemInfoCallback();
+    
+    // Future: navigate to Power settings screen
+    void navigateToPowerSettings();
     
 private:
     // Helper methods

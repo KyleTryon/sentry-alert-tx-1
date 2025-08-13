@@ -18,6 +18,13 @@ const char* SettingsManager::MQTT_PORT_KEY = "mqtt_port";
 const char* SettingsManager::MQTT_CLIENT_ID_KEY = "mqtt_cid";
 const char* SettingsManager::MQTT_SUB_TOPIC_KEY = "mqtt_sub";
 const char* SettingsManager::MQTT_PUB_TOPIC_KEY = "mqtt_pub";
+static const char* PM_INACTIVITY_KEY = "pm_inact";
+static const char* PM_DIM_GRACE_KEY = "pm_dim_ms";
+static const char* PM_DEEP_INT_KEY = "pm_ds_int";
+
+static const uint32_t PM_DEFAULT_INACTIVITY = 10000;
+static const uint32_t PM_DEFAULT_DIM_GRACE = 2000;
+static const uint32_t PM_DEFAULT_DEEP_INTERVAL = 60000;
 
 void SettingsManager::begin() {
     Serial.println("SettingsManager: Initializing NVS...");
@@ -127,6 +134,9 @@ void SettingsManager::resetToDefaults() {
     setMqttClientId(DEFAULT_MQTT_CLIENT_ID);
     setMqttSubscribeTopic(DEFAULT_MQTT_SUB_TOPIC);
     setMqttPublishTopic(DEFAULT_MQTT_PUB_TOPIC);
+    setInactivityTimeoutMs(PM_DEFAULT_INACTIVITY);
+    setDimGraceMs(PM_DEFAULT_DIM_GRACE);
+    setDeepSleepIntervalMs(PM_DEFAULT_DEEP_INTERVAL);
     
     Serial.println("SettingsManager: Settings reset complete");
 }
@@ -243,3 +253,29 @@ void SettingsManager::setMqttPort(int port) { prefs.putInt(MQTT_PORT_KEY, port);
 void SettingsManager::setMqttClientId(const String& clientId) { prefs.putString(MQTT_CLIENT_ID_KEY, clientId); }
 void SettingsManager::setMqttSubscribeTopic(const String& topic) { prefs.putString(MQTT_SUB_TOPIC_KEY, topic); }
 void SettingsManager::setMqttPublishTopic(const String& topic) { prefs.putString(MQTT_PUB_TOPIC_KEY, topic); }
+
+// Power settings
+uint32_t SettingsManager::getInactivityTimeoutMs() {
+    uint32_t v = prefs.getUInt(PM_INACTIVITY_KEY, 0);
+    if (v == 0) return PM_DEFAULT_INACTIVITY;
+    return v;
+}
+void SettingsManager::setInactivityTimeoutMs(uint32_t timeoutMs) {
+    prefs.putUInt(PM_INACTIVITY_KEY, timeoutMs);
+}
+uint32_t SettingsManager::getDimGraceMs() {
+    uint32_t v = prefs.getUInt(PM_DIM_GRACE_KEY, 0);
+    if (v == 0) return PM_DEFAULT_DIM_GRACE;
+    return v;
+}
+void SettingsManager::setDimGraceMs(uint32_t graceMs) {
+    prefs.putUInt(PM_DIM_GRACE_KEY, graceMs);
+}
+uint32_t SettingsManager::getDeepSleepIntervalMs() {
+    uint32_t v = prefs.getUInt(PM_DEEP_INT_KEY, 0);
+    if (v == 0) return PM_DEFAULT_DEEP_INTERVAL;
+    return v;
+}
+void SettingsManager::setDeepSleepIntervalMs(uint32_t intervalMs) {
+    prefs.putUInt(PM_DEEP_INT_KEY, intervalMs);
+}

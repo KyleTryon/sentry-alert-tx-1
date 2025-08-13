@@ -4,6 +4,7 @@
 #include <Arduino.h>
 #include "ScreenManager.h"
 #include "../../hardware/ButtonManager.h"
+#include "../../power/PowerManager.h"
 
 class InputRouter {
 public:
@@ -35,26 +36,39 @@ public:
 		}
 
 		// Route discrete presses to current screen
+		bool anyActivity = false;
 		if (buttons->wasPressed(ButtonManager::BUTTON_A)) {
 			repeatStartMs[ButtonManager::BUTTON_A] = now;
 			lastRepeatMs[ButtonManager::BUTTON_A] = now;
 			manager->handleButtonPress(ButtonInput::BUTTON_A);
+			anyActivity = true;
 		}
 		if (buttons->wasPressed(ButtonManager::BUTTON_B)) {
 			repeatStartMs[ButtonManager::BUTTON_B] = now;
 			lastRepeatMs[ButtonManager::BUTTON_B] = now;
 			manager->handleButtonPress(ButtonInput::BUTTON_B);
+			anyActivity = true;
 		}
 		// Only treat Select as click if it was a short click (not long press)
 		if (buttons->wasReleased(ButtonManager::BUTTON_C) && buttons->wasShortClick(ButtonManager::BUTTON_C)) {
 			if (!suppressSelectUntilRelease) {
 				manager->handleButtonPress(ButtonInput::BUTTON_C);
+				anyActivity = true;
 			}
+		}
+		// Count releases of A/B as activity as well
+		if (buttons->wasReleased(ButtonManager::BUTTON_A) || buttons->wasReleased(ButtonManager::BUTTON_B)) {
+			anyActivity = true;
 		}
 
 		// Auto-repeat for held A/B
 		autoRepeat(now, ButtonManager::BUTTON_A, ButtonInput::BUTTON_A);
 		autoRepeat(now, ButtonManager::BUTTON_B, ButtonInput::BUTTON_B);
+
+		// Notify power manager if any user interaction occurred
+		if (anyActivity) {
+			PowerManager::notifyActivity();
+		}
 	}
 
 private:
