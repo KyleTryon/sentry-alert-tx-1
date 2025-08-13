@@ -1,3 +1,5 @@
+> Archived: Historical implementation notes. See UI_FRAMEWORK_OVERVIEW.md for the current UI guide.
+>
 # Phase 1 Implementation Complete! 🎉
 
 **Part of the UI Framework Evolution:** Phase 1 → **[Phase 2](PHASE2_IMPLEMENTATION_COMPLETE.md)** → Phase 3+  

@@ -1,3 +1,5 @@
+> Archived: Historical plan/status. See UI_FRAMEWORK_OVERVIEW.md for the current UI guide.
+>
 # Alert TX-1 UI Framework Expansion Plan
 
 ## Overview

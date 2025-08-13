@@ -1,3 +1,5 @@
+> Archived: Historical implementation notes. See UI_FRAMEWORK_OVERVIEW.md for the current UI guide.
+>
 # Phase 2 Implementation Complete! 🎉
 
 ## ✅ What Was Implemented

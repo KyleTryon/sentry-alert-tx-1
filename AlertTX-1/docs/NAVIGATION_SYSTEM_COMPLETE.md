@@ -1,3 +1,5 @@
+> Archived: Historical implementation notes. See UI_FRAMEWORK_OVERVIEW.md for the current UI guide.
+>
 # Navigation System Implementation Complete! 🎉
 
 ## ✅ What Was Implemented

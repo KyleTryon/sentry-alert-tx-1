@@ -1,3 +1,5 @@
+> Archived: Legacy reference of Phase 1 system. See UI_FRAMEWORK_OVERVIEW.md for the current UI guide.
+>
 # Alert TX-1 UI Framework Guide (Legacy Reference)
 
 ## Overview
