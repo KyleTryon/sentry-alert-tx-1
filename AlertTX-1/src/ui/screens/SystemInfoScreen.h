@@ -46,8 +46,6 @@ private:
 
  	void refreshMetrics();
 	void drawContent();
- 	static float readBatteryVoltage();
- 	static int estimateBatteryPercent(float vbat);
 };
 
 #endif // SYSTEMINFOSCREEN_H

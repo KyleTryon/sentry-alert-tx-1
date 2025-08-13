@@ -117,6 +117,14 @@ public:
     static String getMqttSubscribeTopic();
     static String getMqttPublishTopic();
 
+    // Power management settings
+    static uint32_t getInactivityTimeoutMs();
+    static void setInactivityTimeoutMs(uint32_t timeoutMs);
+    static uint32_t getDimGraceMs();
+    static void setDimGraceMs(uint32_t graceMs);
+    static uint32_t getDeepSleepIntervalMs();
+    static void setDeepSleepIntervalMs(uint32_t intervalMs);
+
     // Setters
     // Setters no longer needed for immutable build-time config, but kept for potential future UI
     static void setWifiSsid(const String& ssid);

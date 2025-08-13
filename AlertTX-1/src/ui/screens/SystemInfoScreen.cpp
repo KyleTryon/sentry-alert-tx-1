@@ -1,10 +1,10 @@
 #include "SystemInfoScreen.h"
 #include "../core/Theme.h"
+#include "../../power/PowerManager.h"
 
 void SystemInfoScreen::refreshMetrics() {
-	// Battery sampling
-	batteryVoltage = readBatteryVoltage();
-	batteryPercent = estimateBatteryPercent(batteryVoltage);
+	batteryVoltage = PowerManager::getBatteryVoltage();
+	batteryPercent = PowerManager::getBatteryPercent();
 }
 
 void SystemInfoScreen::update() {
@@ -12,7 +12,7 @@ void SystemInfoScreen::update() {
 
     // Update metrics occasionally
     unsigned long now = millis();
-    if (now - lastMetricsUpdateMs > 1000) {
+    if (now - lastMetricsUpdateMs > 2000) {
         lastMetricsUpdateMs = now;
         refreshMetrics();
 
@@ -63,20 +63,4 @@ void SystemInfoScreen::drawContent() {
     display->setCursor(x, y);       display->print("Battery: "); display->print(batteryPercent); display->print("% ("); display->print(batteryVoltage, 2); display->print(" V)");
 }
 
-float SystemInfoScreen::readBatteryVoltage() {
-	// TODO: Replace with actual ADC read once power manager exists
-	// Placeholder returns nominal voltage if USB powered; otherwise a fixed value
-	#ifdef USB_POWERED
-	return 4.10f;
-	#else
-	return 3.90f;
-	#endif
-}
-
-int SystemInfoScreen::estimateBatteryPercent(float vbat) {
-	// Simple LiPo linear approximation between 3.5V (0%) and 4.2V (100%)
-	if (vbat <= 3.50f) return 0;
-	if (vbat >= 4.20f) return 100;
-	return (int)(((vbat - 3.50f) / (4.20f - 3.50f)) * 100.0f + 0.5f);
-}
 

@@ -4,6 +4,7 @@
 #include "SystemInfoScreen.h"
 #include "../../config/SettingsManager.h"
 #include <WiFi.h>
+#include "../../power/PowerManager.h"
 
 // Static members
 SettingsScreen* SettingsScreen::instance = nullptr;
@@ -109,6 +110,13 @@ void SettingsScreen::onSystemInfoSelected() {
     navigateToSystemInfo();
 }
 
+void SettingsScreen::onPowerSelected() {
+    Serial.println("SettingsScreen: Power selected");
+    // Simple inline submenu behavior for now: toggle between Sleep Now and Power Off on successive presses
+    // For MVP, trigger Sleep Now immediately
+    PowerManager::requestSleepNow();
+}
+
 // Static callback wrappers
 void SettingsScreen::ringtoneCallback() {
     if (instance) {
@@ -125,6 +133,12 @@ void SettingsScreen::themeCallback() {
 void SettingsScreen::systemInfoCallback() {
     if (instance) {
         instance->onSystemInfoSelected();
+    }
+}
+
+void SettingsScreen::powerCallback() {
+    if (instance) {
+        instance->onPowerSelected();
     }
 }
 
@@ -146,6 +160,7 @@ void SettingsScreen::createMenuItems() {
     settingsMenu->addMenuItem("Ringtone", 1, ringtoneCallback);
     settingsMenu->addMenuItem("Themes", 2, themeCallback);
     settingsMenu->addMenuItem("System Info", 3, systemInfoCallback);
+    settingsMenu->addMenuItem("Power", 4, powerCallback);
     
     // Auto-layout the menu
     settingsMenu->autoLayout();
@@ -189,6 +204,11 @@ void SettingsScreen::navigateToSystemInfo() {
     } else {
         Serial.println("ERROR: No global screen manager available!");
     }
+}
+
+void SettingsScreen::navigateToPowerSettings() {
+    // Placeholder for a future dedicated PowerSettingsScreen
+    Serial.println("Power settings navigation not yet implemented");
 }
 
 void SettingsScreen::showSystemInfo() {
