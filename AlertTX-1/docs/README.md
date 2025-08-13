@@ -4,7 +4,7 @@ Concise, task-focused guides for users and contributors.
 
 ## Quick start
 
-1) Hardware setup: see `hardware-setup.md` (board, wiring, pins)
+1) Hardware setup: see [hardware-setup.md](hardware-setup.md) (board, wiring, pins)
 2) Install tools:
 ```bash
 make python-deps
@@ -17,15 +17,15 @@ make dev      # upload + serial monitor
 ```
 
 ## Read this first
-- UI framework overview: `UI_FRAMEWORK_OVERVIEW.md`
-- Display issues? `display-troubleshooting.md`
-- Power/battery: `power-management.md`
+- UI framework overview: [UI_FRAMEWORK_OVERVIEW.md](UI_FRAMEWORK_OVERVIEW.md)
+- Display issues? [display-troubleshooting.md](display-troubleshooting.md)
+- Power/battery: [power-management.md](power-management.md)
 
 ## Guides by area
-- Hardware: `hardware-setup.md`, `pinout-reference.md`
-- UI framework: `UI_FRAMEWORK_OVERVIEW.md`
-- Audio: `anyrtttl-integration.md`, `ringtone-build-system.md`
-- Icons: `ICON_SYSTEM_SUMMARY.md`
+- Hardware: [hardware-setup.md](hardware-setup.md), [pinout-reference.md](pinout-reference.md)
+- UI framework: [UI_FRAMEWORK_OVERVIEW.md](UI_FRAMEWORK_OVERVIEW.md)
+- Audio: [anyrtttl-integration.md](anyrtttl-integration.md), [ringtone-build-system.md](ringtone-build-system.md)
+- Icons: [ICON_SYSTEM_SUMMARY.md](ICON_SYSTEM_SUMMARY.md)
 
 ## Controls
 - Button A (GPIO0): Up/Previous
@@ -34,7 +34,7 @@ make dev      # upload + serial monitor
 - Long press any button (1500 ms): Back
 
 ## Contributing
-See `../CONTRIBUTING.md` for setup, coding standards, and PR process.
+See [../CONTRIBUTING.md](../CONTRIBUTING.md) for setup, coding standards, and PR process.
 
 ## History and archived docs
 These are kept for historical reference and are no longer the main guides:
