@@ -28,6 +28,7 @@
 #include "src/ui/screens/MainMenuScreen.h"
 #include "src/ui/screens/SplashScreen.h"
 #include "src/hardware/ButtonManager.h"
+#include "src/ui/core/InputRouter.h"
 
 // Use dedicated hardware SPI pins
 Adafruit_ST7789 tft = Adafruit_ST7789(TFT_CS, TFT_DC, TFT_RST);
@@ -37,6 +38,7 @@ ScreenManager* screenManager;
 MainMenuScreen* mainMenuScreen;
 SplashScreen* splashScreen;
 ButtonManager buttonManager;
+InputRouter* inputRouter;
 
 void setup(void) {
   Serial.begin(115200);
@@ -85,6 +87,7 @@ void setup(void) {
   // STEP 8: Set up global screen manager access
   Serial.println("9. Setting up global screen manager...");
   GlobalScreenManager::setInstance(screenManager);
+  inputRouter = new InputRouter(screenManager, &buttonManager);
   
   // STEP 9: Start with splash screen
   Serial.println("10. Starting with splash screen...");
@@ -96,32 +99,8 @@ void setup(void) {
 }
 
 void loop() {
-  // Update button manager
-  buttonManager.update();
-  
-  // Handle long presses for back navigation (any button)
-  if (buttonManager.isLongPressed(ButtonManager::BUTTON_A) || 
-      buttonManager.isLongPressed(ButtonManager::BUTTON_B) || 
-      buttonManager.isLongPressed(ButtonManager::BUTTON_C)) {
-    Serial.println("Long press detected - navigating back");
-    screenManager->popScreen();
-  }
-  
-  // Handle regular button presses and route to ScreenManager
-  if (buttonManager.wasPressed(ButtonManager::BUTTON_A)) {  // Up
-    Serial.println("Up pressed - routing to screen manager");
-    screenManager->handleButtonPress(ButtonInput::BUTTON_A);
-  }
-  
-  if (buttonManager.wasPressed(ButtonManager::BUTTON_B)) {  // Down
-    Serial.println("Down pressed - routing to screen manager");
-    screenManager->handleButtonPress(ButtonInput::BUTTON_B);
-  }
-  
-  if (buttonManager.wasPressed(ButtonManager::BUTTON_C)) {  // Select
-    Serial.println("Select pressed - routing to screen manager");
-    screenManager->handleButtonPress(ButtonInput::BUTTON_C);
-  }
+  // Route input centrally
+  inputRouter->update();
   
   // Update and draw the Phase 2 component framework
   screenManager->update();

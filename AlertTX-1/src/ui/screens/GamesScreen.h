@@ -3,6 +3,7 @@
 
 #include "../core/Screen.h"
 #include "../core/DisplayUtils.h"
+#include "../components/MenuContainer.h"
 
 /**
  * GamesScreen
@@ -19,17 +20,9 @@
 
 class GamesScreen : public Screen {
 private:
-    // Display content
-    static const char* SCREEN_TITLE;
-    static const char* GAME_LIST[];
-    static const char* GAME_DESCRIPTIONS[];
-    static const int GAME_COUNT;
-    
-    // Layout constants
-    static const int LINE_HEIGHT = 14;
-    static const int START_Y = 40;
-    static const int GAME_INDENT = 20;
-    static const int DESC_INDENT = 25;
+    MenuContainer* gamesMenu;
+    class PongScreen* pongScreen;
+    static GamesScreen* instance;
     
 public:
     GamesScreen(Adafruit_ST7789* display);
@@ -45,9 +38,10 @@ public:
     void handleButtonPress(int button) override;
     
 private:
-    // Drawing helpers
-    void drawContent();
-    void drawGame(int gameIndex, int& currentY);
+    void setupMenu();
+    static void pongCallback();
+    void onPongSelected();
+    void navigateToPong();
 };
 
 #endif // GAMESSCREEN_H

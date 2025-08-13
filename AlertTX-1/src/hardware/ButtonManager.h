@@ -28,6 +28,7 @@ private:
         bool lastState;
         bool pressed;
         bool released;
+        bool shortClicked;
         bool longPressed;
         bool longPressTriggered;
         unsigned long lastDebounceTime;
@@ -51,6 +52,8 @@ public:
     // Button state queries
     bool isPressed(int buttonIndex);
     bool wasPressed(int buttonIndex);
+    bool wasReleased(int buttonIndex);
+    bool wasShortClick(int buttonIndex);
     bool isLongPressed(int buttonIndex);
     
     // Feedback

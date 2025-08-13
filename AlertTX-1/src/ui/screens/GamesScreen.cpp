@@ -1,40 +1,33 @@
 #include "GamesScreen.h"
 #include "../core/ScreenManager.h"
+#include "PongScreen.h"
 
-// Static content definitions
-const char* GamesScreen::SCREEN_TITLE = "Games";
-
-const char* GamesScreen::GAME_LIST[] = {
-    "Snake",
-    "Pong", 
-    "Memory",
-    "Simon",
-    "Breakout"
-};
-
-const char* GamesScreen::GAME_DESCRIPTIONS[] = {
-    "Classic snake game",
-    "Two-player paddle game",
-    "Match the sequence",
-    "Follow the pattern",
-    "Break all the blocks"
-};
-
-const int GamesScreen::GAME_COUNT = 5;
+GamesScreen* GamesScreen::instance = nullptr;
 
 GamesScreen::GamesScreen(Adafruit_ST7789* display)
-    : Screen(display, "Games", 1) {
+    : Screen(display, "Games", 1), gamesMenu(nullptr), pongScreen(nullptr) {
     Serial.println("GamesScreen created");
+    instance = this;
 }
 
 GamesScreen::~GamesScreen() {
     Serial.println("GamesScreen destroyed");
+    instance = nullptr;
 }
 
 void GamesScreen::enter() {
     Screen::enter();
     DisplayUtils::debugScreenEnter("GAMES");
     Serial.println("Entered GamesScreen");
+    if (!gamesMenu) {
+        gamesMenu = new MenuContainer(display, 10, 50);
+        addComponent(gamesMenu);
+        setupMenu();
+    } else {
+        gamesMenu->setVisible(true);
+        gamesMenu->setSelectedIndex(0);
+        gamesMenu->markDirty();
+    }
 }
 
 void GamesScreen::exit() {
@@ -51,63 +44,38 @@ void GamesScreen::update() {
 
 void GamesScreen::draw() {
     Screen::draw();
-    
-    // Draw title
-    DisplayUtils::drawTitle(display, SCREEN_TITLE);
-    
-    // Draw content
-    drawContent();
+    DisplayUtils::drawTitle(display, "Games");
 }
 
 void GamesScreen::handleButtonPress(int button) {
     Serial.printf("GamesScreen: Button %d pressed\n", button);
-    
-    // Currently no specific button actions for GamesScreen
-    // Long press back navigation is handled globally in main loop
-    // Future: Could add game selection and launching actions here
-    
-    Serial.println("GamesScreen: No specific action for this button");
+    if (gamesMenu) {
+        gamesMenu->handleButtonPress(button);
+    }
 }
 
 // Private helper methods
 
-void GamesScreen::drawContent() {
-    display->setTextSize(1);
-    
-    // Draw header text
-    display->setTextColor(ThemeManager::getSecondaryText());
-    display->setCursor(15, START_Y);
-    display->println("Available Games:");
-    
-    int currentY = START_Y + 20;  // Start below header
-    
-    // Draw each game
-    for (int i = 0; i < GAME_COUNT; i++) {
-        drawGame(i, currentY);
-    }
-    
-    // Draw footer instructions
-    display->setTextColor(ThemeManager::getSecondaryText());
-    display->setCursor(15, currentY + 10);
-    display->println("Long press any button");
-    display->setCursor(15, currentY + 22);
-    display->println("to go back");
+void GamesScreen::setupMenu() {
+    if (!gamesMenu) return;
+    gamesMenu->clear();
+    gamesMenu->addMenuItem("Pong", 1, pongCallback);
+    gamesMenu->autoLayout();
 }
 
-void GamesScreen::drawGame(int gameIndex, int& currentY) {
-    if (gameIndex >= GAME_COUNT) return;
-    
-    // Game name in accent color
-    display->setTextColor(ThemeManager::getAccent());
-    display->setCursor(GAME_INDENT, currentY);
-    display->printf("• %s", GAME_LIST[gameIndex]);
-    
-    currentY += LINE_HEIGHT;
-    
-    // Game description in primary text color
-    display->setTextColor(ThemeManager::getPrimaryText());
-    display->setCursor(DESC_INDENT, currentY);
-    display->println(GAME_DESCRIPTIONS[gameIndex]);
-    
-    currentY += LINE_HEIGHT + 2;  // Extra spacing between games
+void GamesScreen::pongCallback() {
+    if (instance) instance->onPongSelected();
+}
+
+void GamesScreen::onPongSelected() {
+    navigateToPong();
+}
+
+void GamesScreen::navigateToPong() {
+    ScreenManager* manager = GlobalScreenManager::getInstance();
+    if (!manager) return;
+    // Create a fresh instance each time and transfer ownership to the manager
+    PongScreen* fresh = new PongScreen(display);
+    manager->pushScreen(fresh, true /*takeOwnership*/);
+    // No per-screen cooldown; global input router/back debounce handles stale inputs
 }

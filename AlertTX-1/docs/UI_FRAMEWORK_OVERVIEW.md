@@ -32,6 +32,15 @@ AlertTX-1/src/
 - Button C (GPIO2): Select/Enter
 - Long press any button (1500 ms): Back (pop screen)
 
+### Input routing (centralized)
+
+- Input is routed by a shared Input Router, not by individual screens.
+- Behavior is consistent across all screens:
+  - Long-press on any button triggers Back (pop screen) with debounce.
+  - Select (C) is recognized on release as a short click (prevents accidental select after long-press).
+  - Holding A/B auto-repeats navigation/movement after a short delay.
+  - Menus auto-select the first item by default.
+
 ## Common tasks
 
 - Switch theme at runtime:
@@ -73,6 +82,17 @@ screenManager->pushScreen(my);
 - Prefer DisplayUtils for text/layout helpers.
 - Keep components small, with clear bounds and markDirty() updates.
 - Favor fixed-size arrays for predictable memory where practical.
+
+### Screen ownership and lifecycle
+
+- By default, screens are reused (caller owns them). If you want an "app"-like screen to be freed when leaving, transfer ownership to the screen manager when navigating:
+
+```cpp
+// Ephemeral screen: manager owns and deletes on back
+screenManager->pushScreen(new MyEphemeralScreen(display), true);
+```
+
+- Use this for disposable game/app screens so state resets on every launch.
 
 ## See also
 

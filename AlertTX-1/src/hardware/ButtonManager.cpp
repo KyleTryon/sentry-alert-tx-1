@@ -60,6 +60,9 @@ void ButtonManager::update() {
                     // Button released
                     btn.released = true;
                     btn.longPressTriggered = false;
+                    // classify short click vs long
+                    unsigned long heldMs = currentTime - btn.pressStartTime;
+                    btn.shortClicked = (heldMs < LONG_PRESS_DELAY);
                     
                     // Button release detected (no event system needed)
                 }
@@ -73,6 +76,7 @@ void ButtonManager::update() {
                 btn.longPressTriggered = true;
                 
                 // Long press detected (no event system needed)
+                // no-op here; router decides how to route long-press vs select
             }
         }
         
@@ -88,6 +92,22 @@ void ButtonManager::update() {
         
         btn.lastState = reading;
     }
+
+    // no per-manager suppression; router owns this behavior
+}
+
+bool ButtonManager::wasReleased(int buttonIndex) {
+    if (buttonIndex < 0 || buttonIndex >= 3) return false;
+    bool result = buttons[buttonIndex].released;
+    buttons[buttonIndex].released = false;
+    return result;
+}
+
+bool ButtonManager::wasShortClick(int buttonIndex) {
+    if (buttonIndex < 0 || buttonIndex >= 3) return false;
+    bool result = buttons[buttonIndex].shortClicked;
+    buttons[buttonIndex].shortClicked = false;
+    return result;
 }
 
 bool ButtonManager::readButtonState(int buttonIndex) {

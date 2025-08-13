@@ -1,4 +1,5 @@
 #include "ScreenManager.h"
+#include "Theme.h"
 
 // Initialize static member
 ScreenManager* GlobalScreenManager::instance = nullptr;
@@ -7,6 +8,7 @@ ScreenManager::ScreenManager(Adafruit_ST7789* display) : display(display) {
     // Initialize screen stack
     for (int i = 0; i < MAX_SCREEN_STACK; i++) {
         screenStack[i] = nullptr;
+        ownedStack[i] = false;
     }
     
     if (!display) {
@@ -55,7 +57,7 @@ void ScreenManager::draw() {
     needsRedraw = false;
 }
 
-bool ScreenManager::pushScreen(Screen* screen) {
+bool ScreenManager::pushScreen(Screen* screen, bool takeOwnership) {
     if (!isValidScreen(screen)) {
         Serial.println("ERROR: Cannot push invalid screen");
         return false;
@@ -72,13 +74,13 @@ bool ScreenManager::pushScreen(Screen* screen) {
     }
     
     // Push current screen to stack (if any)
-    if (currentScreen && !pushToStack(currentScreen)) {
+    if (currentScreen && !pushToStack(currentScreen, currentOwned)) {
         Serial.println("ERROR: Failed to push current screen to stack");
         return false;
     }
     
     // Set new current screen
-    setCurrentScreen(screen);
+    setCurrentScreen(screen, takeOwnership);
     startTransition();
     
     Serial.printf("Pushed screen '%s' (stack size: %d)\n", screen->getName(), stackSize);
@@ -94,17 +96,21 @@ bool ScreenManager::popScreen() {
     // Exit current screen
     if (currentScreen) {
         currentScreen->exit();
+        if (currentOwned) {
+            delete currentScreen;
+        }
     }
     
     // Pop previous screen from stack
-    Screen* previousScreen = popFromStack();
+    bool ownedPrev = false;
+    Screen* previousScreen = popFromStack(ownedPrev);
     if (!previousScreen) {
         Serial.println("ERROR: Failed to pop screen from stack");
         return false;
     }
     
     // Set previous screen as current
-    setCurrentScreen(previousScreen);
+    setCurrentScreen(previousScreen, ownedPrev);
     startTransition();
     
     Serial.printf("Popped to screen '%s' (stack size: %d)\n", 
@@ -121,10 +127,14 @@ bool ScreenManager::switchToScreen(Screen* screen) {
     // Exit current screen
     if (currentScreen) {
         currentScreen->exit();
+        if (currentOwned) {
+            delete currentScreen;
+            currentOwned = false;
+        }
     }
     
     // Don't push to stack - just replace
-    setCurrentScreen(screen);
+    setCurrentScreen(screen, false /*owned*/);
     startTransition();
     
     Serial.printf("Switched to screen '%s'\n", screen->getName());
@@ -155,7 +165,8 @@ Screen* ScreenManager::getPreviousScreen() const {
 }
 
 void ScreenManager::handleButtonPress(int button) {
-    if (inTransition) {
+    unsigned long now = millis();
+    if (inTransition || now < inputCooldownUntilMs) {
         // Ignore input during transitions
         return;
     }
@@ -166,7 +177,8 @@ void ScreenManager::handleButtonPress(int button) {
 }
 
 void ScreenManager::handleButtonLongPress(int button) {
-    if (inTransition) {
+    unsigned long now = millis();
+    if (inTransition || now < inputCooldownUntilMs) {
         return;
     }
     
@@ -224,30 +236,37 @@ bool ScreenManager::validate() const {
 
 // Private implementation methods
 
-bool ScreenManager::pushToStack(Screen* screen) {
+bool ScreenManager::pushToStack(Screen* screen, bool owned) {
     if (stackSize >= MAX_SCREEN_STACK) {
         return false;
     }
     
     screenStack[stackSize] = screen;
+    ownedStack[stackSize] = owned;
     stackSize++;
     return true;
 }
 
-Screen* ScreenManager::popFromStack() {
+Screen* ScreenManager::popFromStack(bool& ownedOut) {
     if (stackSize == 0) {
         return nullptr;
     }
     
     stackSize--;
     Screen* screen = screenStack[stackSize];
+    ownedOut = ownedStack[stackSize];
     screenStack[stackSize] = nullptr;
     return screen;
 }
 
-void ScreenManager::setCurrentScreen(Screen* screen) {
+void ScreenManager::setCurrentScreen(Screen* screen, bool owned) {
     currentScreen = screen;
+    currentOwned = owned;
     if (currentScreen) {
+        // Clear display before entering the new screen to avoid remnants
+        if (display) {
+            display->fillScreen(ThemeManager::getBackground());
+        }
         currentScreen->enter();
         needsRedraw = true;
     }
@@ -257,6 +276,7 @@ void ScreenManager::startTransition() {
     inTransition = true;
     transitionStartTime = millis();
     needsRedraw = true;
+    // After transition completes, we will set a small input cooldown
     
     Serial.println("Started screen transition");
 }
@@ -265,6 +285,7 @@ void ScreenManager::updateTransition() {
     if (isTransitionComplete()) {
         inTransition = false;
         needsRedraw = true;
+        inputCooldownUntilMs = millis() + INPUT_COOLDOWN_MS;
         Serial.println("Completed screen transition");
     }
 }

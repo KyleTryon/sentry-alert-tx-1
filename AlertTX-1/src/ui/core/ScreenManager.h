@@ -27,16 +27,21 @@ private:
     // Screen stack (fixed array for memory efficiency)
     static const int MAX_SCREEN_STACK = 8;  // Maximum navigation depth
     Screen* screenStack[MAX_SCREEN_STACK];
+    bool ownedStack[MAX_SCREEN_STACK];
     int stackSize = 0;
     
     // Current screen state
     Screen* currentScreen = nullptr;
+    bool currentOwned = false;
     bool needsRedraw = true;
     
     // Transition management
     bool inTransition = false;
     unsigned long transitionStartTime = 0;
     static const unsigned long TRANSITION_DURATION = 200;  // 200ms transitions
+    // Global input cooldown after navigation to prevent stale presses
+    unsigned long inputCooldownUntilMs = 0;
+    static const unsigned long INPUT_COOLDOWN_MS = 300;
     
     // Performance tracking
     unsigned long lastUpdateTime = 0;
@@ -52,7 +57,7 @@ public:
     void draw();
     
     // Screen navigation
-    bool pushScreen(Screen* screen);          // Navigate to new screen
+    bool pushScreen(Screen* screen, bool takeOwnership = false); // Navigate to new screen
     bool popScreen();                         // Go back to previous screen
     bool switchToScreen(Screen* screen);      // Replace current screen
     void clearStack();                        // Clear all screens
@@ -83,9 +88,9 @@ public:
     
 private:
     // Stack management helpers
-    bool pushToStack(Screen* screen);
-    Screen* popFromStack();
-    void setCurrentScreen(Screen* screen);
+    bool pushToStack(Screen* screen, bool owned);
+    Screen* popFromStack(bool& ownedOut);
+    void setCurrentScreen(Screen* screen, bool owned);
     
     // Transition management
     void startTransition();

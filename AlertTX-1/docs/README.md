@@ -20,12 +20,14 @@ make dev      # upload + serial monitor
 - UI framework overview: [UI_FRAMEWORK_OVERVIEW.md](UI_FRAMEWORK_OVERVIEW.md)
 - Display issues? [display-troubleshooting.md](display-troubleshooting.md)
 - Power/battery: [power-management.md](power-management.md)
+ - Input routing: centralized input behavior (long-press back, select-on-release, auto-repeat) described in the UI Framework Overview
 
 ## Guides by area
 - Hardware: [hardware-setup.md](hardware-setup.md), [pinout-reference.md](pinout-reference.md)
 - UI framework: [UI_FRAMEWORK_OVERVIEW.md](UI_FRAMEWORK_OVERVIEW.md)
 - Audio: [anyrtttl-integration.md](anyrtttl-integration.md), [ringtone-build-system.md](ringtone-build-system.md)
 - Icons: [ICON_SYSTEM_SUMMARY.md](ICON_SYSTEM_SUMMARY.md)
+ - Games: Pong demo lives in `src/ui/screens/PongScreen.*` and demonstrates efficient partial redraws, score header, and screen ownership (ephemeral app)
 
 ## Controls
 - Button A (GPIO0): Up/Previous

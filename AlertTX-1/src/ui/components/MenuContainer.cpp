@@ -103,7 +103,11 @@ bool MenuContainer::addMenuItem(MenuItem* item) {
     menuItems[itemCount] = item;
     itemCount++;
     
-    // Auto-layout items
+    // Auto-layout items and ensure first item is selected by default
+    if (itemCount == 1) {
+        selectedIndex = 0;
+        updateSelection();
+    }
     autoLayout();
     
     Serial.printf("Added MenuItem '%s' to MenuContainer (%d/%d)\n", 
