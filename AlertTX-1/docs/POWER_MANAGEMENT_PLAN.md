@@ -10,7 +10,7 @@ References:
 - Periodic deep-sleep wake to poll for notifications; instant wake on button
 - Settings to configure timeouts and a "Sleep now / Power off" option
 - Skip splash on deep-sleep wake; preserve UX consistency
-- Detect USB/charging and prevent sleep while charging; start inactivity timer once unplugged
+- Detect USB presence and prevent sleep while USB is connected; start inactivity timer once unplugged
 
 ## Hardware References
 - **Pinout**: `docs/pinout-reference.md` - Battery Monitor MAX17048 (I2C 0x36), VBAT, wake sources, TFT_BACKLITE (GPIO45)
@@ -27,7 +27,7 @@ Introduce `PowerManager` to orchestrate power states. Integrate with `InputRoute
 - `update(nowMs)`: State machine transitions: Active → IdleDim → DeepSleepCycle
 - `requestSleepNow()` / `requestPowerOff()`: Invoked from Settings to enter deep sleep
 - `getBatteryVoltage()`, `getBatteryPercent()`: MAX17048-based readings with EMA smoothing
-- `isUsbPowered()`, `isCharging()`: USB/charging detection; disable sleep while true
+- `isUsbPowered()`: USB presence detection; disable dim/sleep while true
 - Config getters read from `SettingsManager`
 
 **Power State Machine:**
@@ -35,12 +35,12 @@ Introduce `PowerManager` to orchestrate power states. Integrate with `InputRoute
   - `InputRouter` calls `PowerManager::notifyActivity()` on any input
   - If `now - lastActivityMs >= inactivityTimeoutMs` → IdleDim (dim/off backlight)
   - If additionally `>= inactivityTimeoutMs + dimGraceMs` → DeepSleepCycle
-  - If `isUsbPowered()` or `isCharging()` → remain Active and reset inactivity timer
+  - If `isUsbPowered()` → remain Active and reset inactivity timer
 - **IdleDim**
   - Backlight off: `digitalWrite(TFT_BACKLITE, LOW)`
   - Any input → restore backlight, return to Active
   - If grace period exceeded → DeepSleepCycle
-  - If `isUsbPowered()` or `isCharging()` → force Active and backlight on
+  - If `isUsbPowered()` → force Active and backlight on
 - **DeepSleepCycle**
   - Configure timer wake: `esp_sleep_enable_timer_wakeup(sleepIntervalMs * 1000ULL)`
   - Configure button wake: ext0 (Button A, LOW) + ext1 (Button B/C, ANY_HIGH)
@@ -49,11 +49,10 @@ Introduce `PowerManager` to orchestrate power states. Integrate with `InputRoute
     - If new messages: navigate to Messages screen (future)
     - Else: re-enter DeepSleepCycle
 
-**Charging/USB Detection:**
+**USB Detection:**
 - Preferred: Use `VBUS_SENSE_PIN` if wired to detect 5V presence (HIGH = USB present)
-- Fallback heuristic: treat as USB-powered if `batteryVoltage > 4.0V`
-- Charging heuristic: `isCharging = isUsbPowered && (batteryPercent < 99)`
-- Behavior: While USB-powered/charging, do not dim or sleep; inactivity timer is held/reset
+- Fallback heuristic: treat as USB present if `batteryVoltage > 4.0V` (approximate)
+- Behavior: While USB present, do not dim or sleep; inactivity timer is held/reset
 - When USB disconnects, `lastActivityMs` is reset to start normal inactivity countdown
 
 **Backlight Control:**

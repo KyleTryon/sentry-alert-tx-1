@@ -28,7 +28,6 @@ int PowerManager::batteryPercent = 0;
 float PowerManager::voltageEMA = 0.0f;
 
 bool PowerManager::usbPowered = false;
-bool PowerManager::charging = false;
 
 
 bool PowerManager::s_lastWakeWasFromSleep = false;
@@ -82,10 +81,10 @@ void PowerManager::update(unsigned long nowMs) {
     updateBattery();
     updateChargingStatus();
 
-    // If USB powered or charging, keep device awake and reset inactivity
-    if (usbPowered || charging) {
+    // If USB powered, keep device awake and reset inactivity
+    if (usbPowered) {
         if (!backlightEnabled) setBacklight(true);
-        lastActivityMs = nowMs; // prevent dim/sleep while powered/charging
+        lastActivityMs = nowMs; // prevent dim/sleep while USB connected
         currentState = ACTIVE;
         return;
     }
@@ -131,10 +130,10 @@ void PowerManager::notifyActivity() {
 
 void PowerManager::requestSleepNow() {
     Serial.println("PowerManager: Sleep Now requested");
-    // Do not sleep if actively charging/USB powered
+    // Do not sleep if USB is present
     updateChargingStatus();
-    if (usbPowered || charging) {
-        Serial.println("PowerManager: Skipping sleep because device is USB-powered/charging");
+    if (usbPowered) {
+        Serial.println("PowerManager: Skipping sleep because device is USB-powered");
         return;
     }
     configureSleepWakeSources(true);
@@ -151,7 +150,6 @@ void PowerManager::requestPowerOff() {
 float PowerManager::getBatteryVoltage() { return batteryVoltage; }
 int PowerManager::getBatteryPercent() { return batteryPercent; }
 bool PowerManager::isUsbPowered() { return usbPowered; }
-bool PowerManager::isCharging() { return charging; }
 PowerManager::PowerState PowerManager::getCurrentState() { return currentState; }
 bool PowerManager::lastWakeWasFromSleep() { return s_lastWakeWasFromSleep; }
 bool PowerManager::hasNewMessagesOnWake() { return s_hasNewMessagesOnWake; }
@@ -248,8 +246,7 @@ void PowerManager::updateChargingStatus() {
         usbPowered = (batteryVoltage > 4.0f);
     }
 
-    // Charging heuristic: if usb is present and SoC < ~99, assume charging
-    charging = usbPowered && (batteryPercent < 99);
+    // No separate charging heuristic; USB presence is the only gating condition we use
 
     // If we just disconnected from USB, reset inactivity timer to start countdown
     if (prevUsb && !usbPowered) {

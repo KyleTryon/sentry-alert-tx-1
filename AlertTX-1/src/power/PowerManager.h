@@ -29,9 +29,8 @@ public:
     static float getBatteryVoltage();
     static int getBatteryPercent();
 
-    // Charging / USB power
+    // USB power
     static bool isUsbPowered();
-    static bool isCharging();
 
     // State
     static PowerState getCurrentState();
@@ -52,9 +51,8 @@ private:
     static float voltageEMA;
     static constexpr float EMA_ALPHA = 0.2f;
 
-    // USB/Charging
+    // USB power
     static bool usbPowered;
-    static bool charging;
 
 
     // Wake flags
