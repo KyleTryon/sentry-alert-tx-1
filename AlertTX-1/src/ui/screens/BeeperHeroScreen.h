@@ -36,6 +36,23 @@ private:
 	void drawLanes();
 	void drawHitLine();
 
+	// Notes
+	struct Note { uint8_t lane; int y; int prevY; int height; bool active; };
+	static const int MAX_ACTIVE_NOTES = 20;
+	Note notes[MAX_ACTIVE_NOTES];
+	int noteSpeedPx = 3;
+	unsigned long lastNoteStartTime = 0;
+
+	// Scoring
+	int score = 0;
+	int combo = 0;
+	void spawnNoteFromCurrent();
+	uint8_t laneFromFrequency(uint16_t freq) const;
+	void updateNotes();
+	void drawNotes();
+	void tryHitLane(uint8_t lane);
+	void removeNoteAt(int idx);
+
 	// Audio integration
 	RingtonePlayer player;
 	bool started = false;

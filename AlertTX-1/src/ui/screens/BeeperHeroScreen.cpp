@@ -29,34 +29,61 @@ void BeeperHeroScreen::cleanup() {
 }
 
 void BeeperHeroScreen::handleButtonPress(int button) {
-    // Map buttons to lanes for demo
+    // Start playback on first interaction; map buttons to lane hits
     if (!started) {
-        // Start a default melody when first interaction occurs
-        player.playRingtone(ringtone_data::Mario);
+        // Start by name (stub prints for now); visuals run via synthetic fallback
+        player.playRingtoneByName("Mario");
         started = true;
+        return;
     }
+    if (button == ButtonInput::BUTTON_A) tryHitLane(0);
+    else if (button == ButtonInput::BUTTON_B) tryHitLane(1);
+    else if (button == ButtonInput::BUTTON_C) tryHitLane(2);
 }
 
 void BeeperHeroScreen::updateGame() {
-    // Drive audio
+    // Drive audio and update current note info
     player.update();
 
-    // Demo note visualization: mark random lane dirty regions periodically
-    // In a full implementation, translate current note timing to Y positions
-    static unsigned long lastMark = 0;
-    unsigned long now = millis();
-    if (now - lastMark > 120) {
-        lastMark = now;
-        uint8_t lane = random(0, NUM_LANES);
-        int y = StandardGameLayout::PLAY_AREA_TOP + random(0, LANE_HEIGHT - 6);
-        int h = 6;
-        markLaneDirty(lane, y, h);
+    // Spawn notes when the player reports a new note; otherwise synthetic fallback
+    bool spawned = false;
+    if (player.hasNoteInfo()) {
+        unsigned long start = player.getNoteStartTime();
+        if (start != lastNoteStartTime) {
+            lastNoteStartTime = start;
+            spawnNoteFromCurrent();
+            spawned = true;
+        }
     }
+    if (!spawned) {
+        static unsigned long lastSynthetic = 0;
+        unsigned long now = millis();
+        if (now - lastSynthetic >= 200) {
+            lastSynthetic = now;
+            // Random lane on synthetic tick
+            uint8_t lane = random(0, NUM_LANES);
+            for (int i = 0; i < MAX_ACTIVE_NOTES; ++i) {
+                if (!notes[i].active) {
+                    notes[i].active = true;
+                    notes[i].lane = lane;
+                    notes[i].height = 6;
+                    notes[i].prevY = StandardGameLayout::PLAY_AREA_TOP;
+                    notes[i].y = StandardGameLayout::PLAY_AREA_TOP;
+                    markLaneDirty(lane, notes[i].y, notes[i].height);
+                    break;
+                }
+            }
+        }
+    }
+
+    // Move existing notes downward and mark dirty lanes
+    updateNotes();
 }
 
 void BeeperHeroScreen::drawGame() {
+    // Clear only dirty lane regions, then draw active notes
     clearDirtyLanes();
-    // Draw demo falling notes could be placed here using RenderBatch
+    drawNotes();
 }
 
 void BeeperHeroScreen::drawStatic() {
@@ -100,4 +127,77 @@ void BeeperHeroScreen::drawLanes() {
 void BeeperHeroScreen::drawHitLine() {
     display->drawFastHLine(StandardGameLayout::PLAY_AREA_LEFT, HIT_LINE_Y,
                            StandardGameLayout::PLAY_AREA_WIDTH, ThemeManager::getAccent());
+}
+
+uint8_t BeeperHeroScreen::laneFromFrequency(uint16_t freq) const {
+    // Simple split: low/mid/high -> lanes 0..2
+    if (freq < 523) return 0;      // < C5
+    if (freq < 784) return 1;      // < G5
+    return 2;
+}
+
+void BeeperHeroScreen::spawnNoteFromCurrent() {
+    if (!player.hasNoteInfo()) return;
+    uint8_t lane = laneFromFrequency(player.getCurrentFrequency());
+    // Find a free slot
+    for (int i = 0; i < MAX_ACTIVE_NOTES; ++i) {
+        if (!notes[i].active) {
+            notes[i].active = true;
+            notes[i].lane = lane;
+            notes[i].height = 6;
+            notes[i].prevY = StandardGameLayout::PLAY_AREA_TOP;
+            notes[i].y = StandardGameLayout::PLAY_AREA_TOP;
+            markLaneDirty(lane, notes[i].y, notes[i].height);
+            break;
+        }
+    }
+}
+
+void BeeperHeroScreen::updateNotes() {
+    for (int i = 0; i < MAX_ACTIVE_NOTES; ++i) {
+        if (!notes[i].active) continue;
+        notes[i].prevY = notes[i].y;
+        notes[i].y += noteSpeedPx;
+        if (notes[i].y > StandardGameLayout::PLAY_AREA_BOTTOM) {
+            // Missed
+            notes[i].active = false;
+            combo = 0;
+            // Mark lane region dirty: from previous to bottom
+            markLaneDirty(notes[i].lane, notes[i].prevY, StandardGameLayout::PLAY_AREA_BOTTOM - notes[i].prevY);
+        } else {
+            // Mark both previous and new positions as dirty spans
+            int minY = min(notes[i].prevY, notes[i].y);
+            int maxY = max(notes[i].prevY + notes[i].height, notes[i].y + notes[i].height);
+            markLaneDirty(notes[i].lane, minY, maxY - minY);
+        }
+    }
+}
+
+void BeeperHeroScreen::drawNotes() {
+    uint16_t color = ThemeManager::getPrimaryText();
+    for (int i = 0; i < MAX_ACTIVE_NOTES; ++i) {
+        if (!notes[i].active) continue;
+        int x = StandardGameLayout::PLAY_AREA_LEFT + notes[i].lane * LANE_WIDTH + 4;
+        int w = LANE_WIDTH - 8;
+        display->fillRect(x, notes[i].y, w, notes[i].height, color);
+    }
+}
+
+void BeeperHeroScreen::tryHitLane(uint8_t lane) {
+    // Accept if a note crosses the hit window near HIT_LINE_Y
+    const int HIT_WINDOW = 8;
+    for (int i = 0; i < MAX_ACTIVE_NOTES; ++i) {
+        if (!notes[i].active || notes[i].lane != lane) continue;
+        int center = notes[i].y + notes[i].height / 2;
+        if (abs(center - HIT_LINE_Y) <= HIT_WINDOW) {
+            score += 50;
+            combo += 1;
+            // Clear the note area by marking lane dirty and deactivating
+            markLaneDirty(lane, notes[i].y, notes[i].height);
+            notes[i].active = false;
+            // Update header with score
+            StandardGameLayout::drawGameHeader(display, "BeeperHero", score, "Score");
+            break;
+        }
+    }
 }
