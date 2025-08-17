@@ -2,6 +2,7 @@
 #include "../core/Theme.h"
 #include "../core/ScreenManager.h"
 #include "../../config/DisplayConfig.h"
+#include "../core/StandardGameLayout.h"
 
 PongScreen::PongScreen(Adafruit_ST7789* display)
     : Screen(display, "Pong", 42), lastUpdateMs(0), needsRedraw(true) {
@@ -212,20 +213,16 @@ void PongScreen::redrawCenterLineSegmentIn(int x0, int y0, int w, int h) {
 }
 
 void PongScreen::updateScoreDisplay() {
-    // Draw header (title + scores) in the area above the court
-    uint16_t bg = ThemeManager::getBackground();
-    int headerH = courtTop - 1; // header area height
-    display->fillRect(0, 0, 240, headerH, bg);
-    // Title
-    drawTitle("Pong", 90, 2); // small offset to fit scores below
-    // Scores
+    // Use standardized header rendering
+    StandardGameLayout::drawGameHeader(display, "Pong");
+    // Draw scores aligned within header
     display->setTextColor(ThemeManager::getPrimaryText());
     display->setTextSize(1);
-    int scoreY = 22; // below title, still above court
-    display->setCursor(20, scoreY);
+    int scoreY = StandardGameLayout::HEADER_HEIGHT - 7;
+    display->setCursor(10, scoreY);
     display->print("You: ");
     display->print(playerScore);
-    display->setCursor(240 - 80, scoreY);
+    display->setCursor(240 - 60, scoreY);
     display->print("AI: ");
     display->print(aiScore);
 }
