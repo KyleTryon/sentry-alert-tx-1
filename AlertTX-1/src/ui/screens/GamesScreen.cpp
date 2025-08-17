@@ -1,6 +1,8 @@
 #include "GamesScreen.h"
 #include "../core/ScreenManager.h"
 #include "PongScreen.h"
+#include "SnakeScreen.h"
+#include "BeeperHeroScreen.h"
 
 GamesScreen* GamesScreen::instance = nullptr;
 
@@ -38,8 +40,6 @@ void GamesScreen::exit() {
 
 void GamesScreen::update() {
     Screen::update();
-    // GamesScreen doesn't need special update logic
-    // Could add game preview animations here
 }
 
 void GamesScreen::draw() {
@@ -60,6 +60,8 @@ void GamesScreen::setupMenu() {
     if (!gamesMenu) return;
     gamesMenu->clear();
     gamesMenu->addMenuItem("Pong", 1, pongCallback);
+    gamesMenu->addMenuItem("Snake", 2, snakeCallback);
+    gamesMenu->addMenuItem("BeeperHero", 3, beeperHeroCallback);
     gamesMenu->autoLayout();
 }
 
@@ -67,15 +69,43 @@ void GamesScreen::pongCallback() {
     if (instance) instance->onPongSelected();
 }
 
+void GamesScreen::snakeCallback() {
+    if (instance) instance->onSnakeSelected();
+}
+
+void GamesScreen::beeperHeroCallback() {
+    if (instance) instance->onBeeperHeroSelected();
+}
+
 void GamesScreen::onPongSelected() {
     navigateToPong();
+}
+
+void GamesScreen::onSnakeSelected() {
+    navigateToSnake();
+}
+
+void GamesScreen::onBeeperHeroSelected() {
+    navigateToBeeperHero();
 }
 
 void GamesScreen::navigateToPong() {
     ScreenManager* manager = GlobalScreenManager::getInstance();
     if (!manager) return;
-    // Create a fresh instance each time and transfer ownership to the manager
     PongScreen* fresh = new PongScreen(display);
     manager->pushScreen(fresh, true /*takeOwnership*/);
-    // No per-screen cooldown; global input router/back debounce handles stale inputs
+}
+
+void GamesScreen::navigateToSnake() {
+    ScreenManager* manager = GlobalScreenManager::getInstance();
+    if (!manager) return;
+    SnakeScreen* fresh = new SnakeScreen(display);
+    manager->pushScreen(fresh, true /*takeOwnership*/);
+}
+
+void GamesScreen::navigateToBeeperHero() {
+    ScreenManager* manager = GlobalScreenManager::getInstance();
+    if (!manager) return;
+    BeeperHeroScreen* fresh = new BeeperHeroScreen(display);
+    manager->pushScreen(fresh, true /*takeOwnership*/);
 }
