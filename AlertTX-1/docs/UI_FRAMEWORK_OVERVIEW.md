@@ -21,8 +21,8 @@ AlertTX-1/src/
 ├── ui/
 │   ├── core/            # Component, Screen, ScreenManager, Theme, DisplayUtils
 │   ├── components/      # MenuContainer, MenuItem, Clickable
-│   ├── screens/         # SplashScreen, MainMenuScreen, etc.
-│   └── Menu.h/.cpp      # Legacy simple menu (Phase 1)
+│   ├── screens/         # SplashScreen, MainMenuScreen, SettingsScreen, Alerts, etc.
+│   └── games/           # BeeperHeroScreen, PongScreen, SnakeScreen (GameScreen-based)
 ```
 
 ## Controls
@@ -93,6 +93,22 @@ screenManager->pushScreen(new MyEphemeralScreen(display), true);
 ```
 
 - Use this for disposable game/app screens so state resets on every launch.
+
+## Game framework (new)
+
+- GameScreen (core): base class for games providing:
+  - `setTargetFPS(int)`, frame gating in `update()`
+  - Static vs dynamic drawing split via `drawStatic()` and `drawGame()`
+- StandardGameLayout (core): shared header + play-area constants and helpers
+  - `drawGameHeader()`, `drawPlayAreaBorder()`, `clearPlayArea()`
+- All games now live under `src/ui/games/` and inherit `GameScreen`:
+  - `BeeperHeroScreen`, `PongScreen`, `SnakeScreen`
+
+### Cleanup hook (new)
+
+- `Screen::cleanup()` is called from `Screen::exit()`.
+- Use this to stop audio, free resources, and reset pointers.
+- `ScreenManager::clearStack()` now deletes owned screens (and calls `exit()`), preventing leaks.
 
 ## See also
 
