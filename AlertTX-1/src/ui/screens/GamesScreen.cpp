@@ -1,8 +1,8 @@
 #include "GamesScreen.h"
 #include "../core/ScreenManager.h"
-#include "PongScreen.h"
-#include "SnakeScreen.h"
-#include "BeeperHeroScreen.h"
+#include "../games/PongScreen.h"
+#include "../games/SnakeScreen.h"
+#include "../games/BeeperHeroScreen.h"
 
 GamesScreen* GamesScreen::instance = nullptr;
 

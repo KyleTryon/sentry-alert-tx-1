@@ -1,19 +1,21 @@
 #ifndef PONGSCREEN_H
 #define PONGSCREEN_H
 
-#include "../core/Screen.h"
+#include "../core/GameScreen.h"
 #include "../core/DisplayUtils.h"
 
-class PongScreen : public Screen {
+class PongScreen : public GameScreen {
 public:
 	PongScreen(Adafruit_ST7789* display);
 	~PongScreen() override = default;
 
 	void enter() override;
-	void exit() override;
-	void update() override;
-	void draw() override;
 	void handleButtonPress(int button) override;
+
+protected:
+	void updateGame() override;
+	void drawGame() override;
+	void drawStatic() override;
 
 private:
 	// Game state
@@ -30,7 +32,6 @@ private:
     int playerScore = 0;
     int aiScore = 0;
 	int courtLeft, courtRight, courtTop, courtBottom;
-	unsigned long lastUpdateMs;
 	bool needsRedraw;
     bool pendingFullRedraw = false;
 
@@ -47,4 +48,3 @@ private:
 };
 
 #endif // PONGSCREEN_H
-

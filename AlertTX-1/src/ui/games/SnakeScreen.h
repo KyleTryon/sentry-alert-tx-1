@@ -1,19 +1,21 @@
 #ifndef SNAKESCREEN_H
 #define SNAKESCREEN_H
 
-#include "../core/Screen.h"
+#include "../core/GameScreen.h"
 #include "../core/StandardGameLayout.h"
 
-class SnakeScreen : public Screen {
+class SnakeScreen : public GameScreen {
 public:
 	SnakeScreen(Adafruit_ST7789* display);
 	~SnakeScreen() override = default;
 
 	void enter() override;
-	void exit() override;
-	void update() override;
-	void draw() override;
 	void handleButtonPress(int button) override;
+
+protected:
+	void updateGame() override;
+	void drawGame() override;
+	void drawStatic() override;
 
 private:
 	// Grid config
@@ -40,7 +42,7 @@ private:
 	void drawHeader();
 	void drawGrid();
 	void drawCell(int gx, int gy, uint16_t color);
-	void step();
+	void stepOnce();
 };
 
 #endif // SNAKESCREEN_H

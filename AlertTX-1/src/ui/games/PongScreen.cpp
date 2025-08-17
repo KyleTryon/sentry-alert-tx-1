@@ -5,7 +5,7 @@
 #include "../core/StandardGameLayout.h"
 
 PongScreen::PongScreen(Adafruit_ST7789* display)
-    : Screen(display, "Pong", 42), lastUpdateMs(0), needsRedraw(true) {
+    : GameScreen(display, "Pong", 42), needsRedraw(true) {
     // Court bounds (leave margin)
     courtLeft = 6;
     courtRight = 234;
@@ -24,14 +24,11 @@ PongScreen::PongScreen(Adafruit_ST7789* display)
 }
 
 void PongScreen::enter() {
-    Screen::enter();
+    GameScreen::enter();
+    setTargetFPS(60);
     needsRedraw = true;
-    updateScoreDisplay(); // draw header (title + scores) once above court
+    updateScoreDisplay(); // draw header (title + scores)
     fullRedraw();
-}
-
-void PongScreen::exit() {
-    Screen::exit();
 }
 
 void PongScreen::resetBall() {
@@ -44,11 +41,9 @@ void PongScreen::resetBall() {
 }
 
 void PongScreen::aiMove() {
-    // Simple proportional tracking with clamp
-    // Track ball with limited speed to keep it fair
     int center = paddleAiY + paddleHeight / 2;
     int error = ballY - center;
-    if (error > 1) paddleAiY += 1; // slow chase
+    if (error > 1) paddleAiY += 1;
     else if (error < -1) paddleAiY -= 1;
 }
 
@@ -59,11 +54,7 @@ void PongScreen::clampPaddles() {
     if (paddleAiY + paddleHeight > courtBottom) paddleAiY = courtBottom - paddleHeight;
 }
 
-void PongScreen::update() {
-    Screen::update();
-    unsigned long now = millis();
-    if (now - lastUpdateMs < 16) return; // ~60Hz
-    lastUpdateMs = now;
+void PongScreen::updateGame() {
     clampPaddles();
 
     // AI
@@ -121,15 +112,14 @@ void PongScreen::update() {
     }
 }
 
-void PongScreen::draw() {
-    if (!isActive()) return;
-    // Draw only changed regions normally; do a full redraw when requested
-    static unsigned long lastCourtRedraw = 0;
-    unsigned long now = millis();
+void PongScreen::drawGame() {
     if (pendingFullRedraw) {
         fullRedraw();
         pendingFullRedraw = false;
-    } else if (now - lastCourtRedraw > 1000) { // redraw static court less often
+    }
+    static unsigned long lastCourtRedraw = 0;
+    unsigned long now = millis();
+    if (now - lastCourtRedraw > 1000) { // redraw static court less often
         drawCourt();
         lastCourtRedraw = now;
     }
@@ -138,8 +128,12 @@ void PongScreen::draw() {
     needsRedraw = false;
 }
 
+void PongScreen::drawStatic() {
+    updateScoreDisplay();
+    drawCourt();
+}
+
 void PongScreen::drawCourt() {
-    // Redraw only the court area (not the header) to avoid wiping score/title
     uint16_t bg = ThemeManager::getBackground();
     int courtW = (courtRight - courtLeft);
     int courtH = (courtBottom - courtTop);
@@ -165,24 +159,18 @@ void PongScreen::drawObjects() {
 }
 
 void PongScreen::clearPrevious() {
-    // Clear previous ball and paddles by overdrawing with background inside the court
     uint16_t bg = ThemeManager::getBackground();
     int playerX = courtLeft + 4;
     int aiX = courtRight - 4 - paddleWidth;
     // Clear previous ball
     display->fillRect(prevBallX, prevBallY, ballSize, ballSize, bg);
-    // Also clear if ball left the court horizontally (outside courtLeft..courtRight)
     if (prevBallX < courtLeft - 1 || prevBallX > courtRight) {
-        // Clear the full header-to-footer column where the ball was, clamped to screen
         int x0 = CLAMP_X(prevBallX);
         int w = ballSize;
         if (x0 + w > DISPLAY_WIDTH) w = DISPLAY_WIDTH - x0;
         if (w > 0) {
             display->fillRect(x0, 0, w, DISPLAY_HEIGHT, bg);
-            // Redraw header and court edge portions we might have erased
             updateScoreDisplay();
-            // Redraw borders if we touched them
-            // Left/right borders are at courtLeft and courtRight-1
             if (x0 <= courtLeft && x0 + w >= courtLeft) {
                 display->drawFastVLine(courtLeft, courtTop, courtBottom - courtTop, ThemeManager::getBorder());
             }
@@ -195,7 +183,6 @@ void PongScreen::clearPrevious() {
     // Clear previous paddles
     display->fillRect(playerX, prevPaddlePlayerY, paddleWidth, paddleHeight, bg);
     display->fillRect(aiX, prevPaddleAiY, paddleWidth, paddleHeight, bg);
-    // Update previous paddle positions after clearing
     prevPaddlePlayerY = paddlePlayerY;
     prevPaddleAiY = paddleAiY;
 }
@@ -204,7 +191,6 @@ void PongScreen::redrawCenterLineSegmentIn(int x0, int y0, int w, int h) {
     int centerX = (courtLeft + courtRight) / 2;
     if (x0 <= centerX && centerX < x0 + w) {
         for (int y = courtTop; y < courtBottom; y += 6) {
-            // dash height 3
             if (y + 3 >= y0 && y <= y0 + h) {
                 display->drawFastVLine(centerX, y, 3, ThemeManager::getSecondaryText());
             }
@@ -213,9 +199,7 @@ void PongScreen::redrawCenterLineSegmentIn(int x0, int y0, int w, int h) {
 }
 
 void PongScreen::updateScoreDisplay() {
-    // Use standardized header rendering
     StandardGameLayout::drawGameHeader(display, "Pong");
-    // Draw scores aligned within header
     display->setTextColor(ThemeManager::getPrimaryText());
     display->setTextSize(1);
     int scoreY = StandardGameLayout::HEADER_HEIGHT - 7;
@@ -228,12 +212,10 @@ void PongScreen::updateScoreDisplay() {
 }
 
 void PongScreen::fullRedraw() {
-    // Redraw entire screen to ensure a clean frame (e.g., after score)
     uint16_t bg = ThemeManager::getBackground();
     display->fillScreen(bg);
     updateScoreDisplay();
     drawCourt();
-    // Reset previous positions to avoid residual clear of new positions
     prevBallX = ballX;
     prevBallY = ballY;
     prevPaddlePlayerY = paddlePlayerY;
@@ -251,4 +233,3 @@ void PongScreen::handleButtonPress(int button) {
         needsRedraw = true;
     }
 }
-
