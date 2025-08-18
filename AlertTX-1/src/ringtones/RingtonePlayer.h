@@ -5,6 +5,8 @@
 #include <anyrtttl.h>
 #include "ringtone_data.h"  // Auto-generated ringtone data
 
+class LED; // forward decl
+
 // Note information structure for BeeperHero game integration
 struct NoteInfo {
     uint16_t frequency;     // Note frequency in Hz
@@ -34,6 +36,8 @@ private:
     
     // Hardware interface
     int buzzerPin;
+    LED* syncedLed = nullptr;
+    bool ledSyncEnabled = false;
 
 public:
     RingtonePlayer();
@@ -43,6 +47,10 @@ public:
     void begin(int buzzerPin);
     void setVolume(uint8_t vol); // 0-100
     void setMuted(bool mute);
+
+    // LED sync
+    void attachLed(LED* led); // optional
+    void setLedSyncEnabled(bool enabled);
     
     // Playback control
     void playRingtone(const char* rtttl);  // Legacy text format support
@@ -82,6 +90,7 @@ private:
     // Internal methods
     void updateNoteInfo();
     void calculateNoteInfo();
+    void onNewNote();
     
     // Hardware interface
     void playTone(uint16_t frequency, unsigned long duration);

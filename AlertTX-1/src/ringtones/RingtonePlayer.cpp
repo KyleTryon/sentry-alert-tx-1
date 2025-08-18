@@ -1,5 +1,6 @@
 #include "RingtonePlayer.h"
 #include "src/config/settings.h"
+#include "src/hardware/LED.h"
 
 // RingtonePlayer implementation
 
@@ -39,6 +40,14 @@ void RingtonePlayer::setMuted(bool mute) {
     if (muted && isPlaying()) {
         stopTone();
     }
+}
+
+void RingtonePlayer::attachLed(LED* led) {
+    syncedLed = led;
+}
+
+void RingtonePlayer::setLedSyncEnabled(bool enabled) {
+    ledSyncEnabled = enabled;
 }
 
 void RingtonePlayer::playRingtone(const char* rtttl) {
@@ -89,6 +98,11 @@ void RingtonePlayer::stop() {
     
     // Stop AnyRtttl playback
     anyrtttl::nonblocking::stop();
+    
+    // Ensure LED off
+    if (syncedLed && ledSyncEnabled) {
+        syncedLed->off();
+    }
     
     Serial.println("Ringtone stopped");
 }
@@ -177,15 +191,7 @@ void RingtonePlayer::updateNoteInfo() {
         return;
     }
     
-    // Get current note info from AnyRtttl
-    // Note: AnyRtttl doesn't expose note-level info directly, so we'll simulate it
-    // based on the current playback state and timing
-    
     unsigned long currentTime = getPlaybackTime();
-    
-    // For now, we'll generate note info based on timing
-    // In a full implementation, you might want to parse the RTTTL string
-    // to get actual note information
     
     // Simulate note changes every 200ms
     unsigned long noteTime = (currentTime / 200) * 200;
@@ -201,12 +207,20 @@ void RingtonePlayer::updateNoteInfo() {
         currentNoteInfo.isDotted = false;
         currentNoteInfo.isSharp = false;
         noteInfoValid = true;
+        onNewNote();
     }
 }
 
 void RingtonePlayer::calculateNoteInfo() {
     // Calculate note info from AnyRtttl data
     updateNoteInfo();
+}
+
+void RingtonePlayer::onNewNote() {
+    if (!ledSyncEnabled || !syncedLed) return;
+    // Blink briefly per note; half of simulated note duration
+    unsigned long blinkMs = currentNoteInfo.duration > 0 ? (currentNoteInfo.duration / 2) : 100;
+    syncedLed->blink(blinkMs);
 }
 
 void RingtonePlayer::setBuzzerPin(int pin) {

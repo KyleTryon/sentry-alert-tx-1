@@ -30,6 +30,7 @@
 #include "src/ui/screens/SplashScreen.h"
 #include "src/ui/screens/AlertsScreen.h"
 #include "src/hardware/ButtonManager.h"
+#include "src/hardware/LED.h"
 #include "src/ui/core/InputRouter.h"
 #include "src/ringtones/RingtonePlayer.h"
 #include "src/mqtt/MQTTClient.h"
@@ -43,6 +44,7 @@ MainMenuScreen* mainMenuScreen;
 SplashScreen* splashScreen;
 ButtonManager buttonManager;
 InputRouter* inputRouter;
+LED statusLed;
 
 static void onMqttMessage(char* topic, uint8_t* payload, unsigned int length) {
   // Copy payload to null-terminated buffer
@@ -121,9 +123,14 @@ void setup(void) {
   Serial.println("7. Initializing button manager...");
   buttonManager.begin();
 
-  // Initialize ringtone player
+  // Initialize external status LED
+  statusLed.begin(LED_PIN);
+
+  // Initialize ringtone player and attach LED sync
   Serial.println("8. Initializing ringtone player...");
   ringtonePlayer.begin(BUZZER_PIN);
+  ringtonePlayer.attachLed(&statusLed);
+  ringtonePlayer.setLedSyncEnabled(true);
 
   // Initialize MQTT
   Serial.println("9. Initializing MQTT...");
