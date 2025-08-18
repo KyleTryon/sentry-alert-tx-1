@@ -118,3 +118,33 @@ void DisplayUtils::drawDebugOverlay(Adafruit_ST7789* display) {
     display->printf("%dx%d", DISPLAY_WIDTH, DISPLAY_HEIGHT);
     #endif
 }
+
+#if __has_include("../../icons/Icon.h")
+#include "../../icons/Icon.h"
+#include <pgmspace.h>
+static inline void drawIconLine(Adafruit_ST7789* display, const uint16_t* data, int x, int y, int w) {
+    display->drawRGBBitmap(x, y, data, w, 1);
+}
+
+static void drawIconInternal(Adafruit_ST7789* display, const Icon& icon, int x, int y) {
+    if (!display) return;
+    if (x >= DISPLAY_WIDTH || y >= DISPLAY_HEIGHT) return;
+    int drawWidth = icon.w;
+    int drawHeight = icon.h;
+    if (drawWidth <= 0 || drawHeight <= 0) return;
+
+    const int MAX_LINE = DISPLAY_WIDTH;
+    static uint16_t line[MAX_LINE];
+    int copyWidth = (drawWidth < MAX_LINE) ? drawWidth : MAX_LINE;
+    for (int row = 0; row < drawHeight; ++row) {
+        for (int col = 0; col < copyWidth; ++col) {
+            line[col] = pgm_read_word(&(icon.data[row * icon.w + col]));
+        }
+        drawIconLine(display, line, x, y + row, copyWidth);
+    }
+}
+
+void DisplayUtils::drawIcon(Adafruit_ST7789* display, const Icon& icon, int x, int y) {
+    drawIconInternal(display, icon, x, y);
+}
+#endif

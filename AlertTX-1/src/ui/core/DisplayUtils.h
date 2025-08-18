@@ -5,6 +5,10 @@
 #include "../../config/DisplayConfig.h"
 #include "Theme.h"
 
+#if __has_include("../../icons/Icon.h")
+#include "../../icons/Icon.h"
+#endif
+
 /**
  * DisplayUtils
  * 
@@ -134,13 +138,13 @@ public:
      * @param display Graphics display instance
      */
     static void drawDebugOverlay(Adafruit_ST7789* display);
-    
-private:
-    // No instantiation - utility class only
-    DisplayUtils() = delete;
-    ~DisplayUtils() = delete;
-    DisplayUtils(const DisplayUtils&) = delete;
-    DisplayUtils& operator=(const DisplayUtils&) = delete;
+
+    #if __has_include("../../icons/Icon.h")
+    /**
+     * Draw an Icon (RGB565 in PROGMEM) at the given coordinates
+     */
+    static void drawIcon(Adafruit_ST7789* display, const Icon& icon, int x, int y);
+    #endif
 };
 
 #endif // DISPLAYUTILS_H

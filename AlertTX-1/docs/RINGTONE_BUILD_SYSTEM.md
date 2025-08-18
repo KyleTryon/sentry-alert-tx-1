@@ -43,38 +43,34 @@ The generated header file contains:
 ### Adding New Ringtones
 
 1. **Add RTTTL file** to `data/ringtones/`:
-   ```bash
-   # Example: Add a new ringtone
-   echo "MySong:d=4,o=5,b=100:c,c,g,g,a,a,g,f,f,e,e,d,d,c" > data/ringtones/my_song.rtttl.txt
-   ```
+```bash
+# Example: Add a new ringtone
+echo "MySong:d=4,o=5,b=100:c,c,g,g,a,a,g,f,f,e,e,d,d,c" > data/ringtones/my_song.rtttl.txt
+```
 
 2. **Regenerate data** (automatic with build, uses caching):
-   ```bash
-   make ringtones
-   # or
-   python3 tools/generate_ringtone_data.py
-   ```
+```bash
+make ringtones
+# or
+python3 tools/generate_ringtone_data.py
+```
 
 3. **Use in code**:
-   ```cpp
-   // Play by name (binary format)
-   ringtonePlayer.playRingtoneByName("MySong");
-   
-   // Play by index (binary format)
-   ringtonePlayer.playRingtoneByIndex(15); // 16th ringtone
-   
-   // BeeperHero rhythm game
-   const uint8_t* trackData = getBeeperHeroTrackData("MySong");
-   size_t trackSize = getBeeperHeroTrackSize("MySong");
-   
-   // Non-blocking audio (text format)
-   const char* textRTTTL = getTextRTTTL("MySong");
-   anyrtttl::nonblocking::begin(BUZZER_PIN, textRTTTL);
-   
-   // Get ringtone info
-   int count = getRingtoneCount();
-   const char* name = getRingtoneName(0);
-   ```
+```cpp
+// Play by name (binary format)
+ringtonePlayer.playRingtoneByName("MySong");
+
+// Play by index (binary format)
+ringtonePlayer.playRingtoneByIndex(15); // 16th ringtone
+
+// Non-blocking audio (text format)
+const char* textRTTTL = getTextRTTTL("MySong");
+anyrtttl::nonblocking::begin(BUZZER_PIN, textRTTTL);
+
+// Get ringtone info
+int count = getRingtoneCount();
+const char* name = getRingtoneName(0);
+```
 
 ### Build Commands
 
@@ -97,6 +93,25 @@ make clean
 # Show all commands
 make help
 ```
+
+## Selection Persistence
+
+Ringtone selection is persisted in ESP32 NVS via `SettingsManager` and previewed on selection:
+
+```cpp
+#include "src/config/SettingsManager.h"
+#include "src/ringtones/RingtonePlayer.h"
+
+// Save selection
+SettingsManager::setRingtoneIndex(index);
+
+// Load and optionally preview at startup
+int ringIdx = SettingsManager::getRingtoneIndex();
+ringtonePlayer.begin(BUZZER_PIN);
+// Optional: ringtonePlayer.playRingtoneByIndex(ringIdx);
+```
+
+This mirrors theme persistence and survives reboots.
 
 ## Generated Code Structure
 
@@ -126,27 +141,6 @@ struct RingtoneEntry {
     size_t track_size;
     const char* filename;
 };
-
-// Global data arrays for efficient lookup
-static const unsigned char* BINARY_DATA[] = {digimon_rtttl, mario_rtttl, ...};
-static const size_t BINARY_SIZES[] = {digimon_rtttl_size, mario_rtttl_size, ...};
-static const char* TEXT_RTTTL_DATA[] = {digimon_text, mario_text, ...};
-static const uint8_t* TRACK_DATA[] = {digimon_track, mario_track, ...};
-static const size_t TRACK_SIZES[] = {digimon_track_size, mario_track_size, ...};
-
-// Helper functions for all formats
-inline const unsigned char* getBinaryRTTTL(int index);
-inline const unsigned char* getBinaryRTTTL(const char* name);
-inline size_t getBinaryRTTTLSize(int index);
-inline const char* getTextRTTTL(int index);
-inline const char* getTextRTTTL(const char* name);
-inline const uint8_t* getBeeperHeroTrackData(int index);
-inline const uint8_t* getBeeperHeroTrackData(const char* name);
-inline size_t getBeeperHeroTrackSize(int index);
-inline size_t getBeeperHeroTrackSize(const char* name);
-inline int getRingtoneCount();
-inline const char* getRingtoneName(int index);
-inline int findRingtoneIndex(const char* name);
 ```
 
 ## Caching System

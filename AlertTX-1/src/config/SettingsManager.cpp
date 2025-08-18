@@ -11,6 +11,7 @@
 Preferences SettingsManager::prefs;
 const char* SettingsManager::NAMESPACE = "alerttx1";
 const char* SettingsManager::THEME_KEY = "theme_idx";
+const char* SettingsManager::RINGTONE_KEY = "ring_idx";
 const char* SettingsManager::WIFI_SSID_KEY = "wifi_ssid";
 const char* SettingsManager::WIFI_PASSWORD_KEY = "wifi_pass";
 const char* SettingsManager::MQTT_BROKER_KEY = "mqtt_host";
@@ -35,6 +36,7 @@ void SettingsManager::begin() {
         if (!isInitialized()) {
             Serial.println("SettingsManager: First run detected, initializing defaults");
             setThemeIndex(0); // Set default theme
+            setRingtoneIndex(0); // Set default ringtone
 
             // Seed WiFi/MQTT from generated_secrets.h if provided at build time
             #ifdef ALERTTX1_ENV_WIFI_SSID
@@ -141,6 +143,7 @@ void SettingsManager::printDebugInfo() {
     
     if (isInitialized()) {
         Serial.printf("Theme Index: %d\n", getThemeIndex());
+        Serial.printf("Ringtone Index: %d\n", getRingtoneIndex());
     }
     
     // Get number of keys (if available in this ESP32 core version)
@@ -157,6 +160,32 @@ void SettingsManager::printDebugInfo() {
 
 bool SettingsManager::isValidThemeIndex(int index) {
     return (index >= MIN_THEME_INDEX && index <= MAX_THEME_INDEX);
+}
+
+int SettingsManager::getRingtoneIndex() {
+    int savedIndex = prefs.getInt(RINGTONE_KEY, -1);
+    if (savedIndex < 0) return 0;
+    // Validate with ringtone count if available
+    #if __has_include("../ringtones/ringtone_data.h")
+    #include "../ringtones/ringtone_data.h"
+    if (savedIndex >= RINGTONE_COUNT) return 0;
+    #endif
+    return savedIndex;
+}
+
+bool SettingsManager::setRingtoneIndex(int index) {
+    if (index < 0) return false;
+    #if __has_include("../ringtones/ringtone_data.h")
+    #include "../ringtones/ringtone_data.h"
+    if (index >= RINGTONE_COUNT) return false;
+    #endif
+    size_t bytesWritten = prefs.putInt(RINGTONE_KEY, index);
+    if (bytesWritten > 0) {
+        Serial.printf("SettingsManager: Ringtone %d saved to NVS (%d bytes)\n", index, bytesWritten);
+        return true;
+    }
+    Serial.printf("SettingsManager: Failed to save ringtone %d to NVS\n", index);
+    return false;
 }
 
 // WiFi/MQTT getters

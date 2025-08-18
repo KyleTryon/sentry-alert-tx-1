@@ -3,6 +3,7 @@
 #include "ThemeSelectionScreen.h"
 #include "SystemInfoScreen.h"
 #include "../../config/SettingsManager.h"
+#include "../../ringtones/RingtonePlayer.h"
 #include <WiFi.h>
 
 // Static members
@@ -154,12 +155,16 @@ void SettingsScreen::createMenuItems() {
 }
 
 void SettingsScreen::cycleRingtone() {
-    currentRingtoneIndex = (currentRingtoneIndex + 1) % MAX_RINGTONES;
-    
-    Serial.printf("Ringtone changed to: %s\n", RINGTONE_NAMES[currentRingtoneIndex]);
-    
-    // TODO: In the future, this could play a preview of the ringtone
-    // using the RingtonePlayer system
+    int total = ringtonePlayer.getRingtoneCount();
+    if (total <= 0) return;
+    if (currentRingtoneIndex < 0 || currentRingtoneIndex >= total) {
+        currentRingtoneIndex = SettingsManager::getRingtoneIndex();
+    }
+    currentRingtoneIndex = (currentRingtoneIndex + 1) % total;
+    const char* name = ringtonePlayer.getRingtoneName(currentRingtoneIndex);
+    Serial.printf("Ringtone changed to: %s (%d/%d)\n", name ? name : "(unknown)", currentRingtoneIndex + 1, total);
+    SettingsManager::setRingtoneIndex(currentRingtoneIndex);
+    ringtonePlayer.playRingtoneByIndex(currentRingtoneIndex);
 }
 
 void SettingsScreen::navigateToThemeSelection() {

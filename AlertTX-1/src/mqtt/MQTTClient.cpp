@@ -77,6 +77,7 @@ bool MQTTClient::publish(const char* topic, const char* payload) {
 }
 
 void MQTTClient::subscribe(const char* topic) {
+  _lastSubscribeTopic = topic;
   _client.subscribe(topic);
 }
 
@@ -90,7 +91,9 @@ void MQTTClient::reconnect() {
     Serial.print("Attempting MQTT connection...");
     if (_client.connect(_clientId)) {
       Serial.println("connected");
-      // Resubscribe here if needed
+      if (_lastSubscribeTopic) {
+        _client.subscribe(_lastSubscribeTopic);
+      }
     } else {
       Serial.print("failed, rc=");
       Serial.print(_client.state());

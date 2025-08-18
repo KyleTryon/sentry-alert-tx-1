@@ -21,6 +21,7 @@ private:
   const char* _mqttBroker;
   int _mqttPort;
   const char* _clientId;
+  const char* _lastSubscribeTopic = nullptr;
   void reconnect();
 };
 #endif // MQTTCLIENT_H
