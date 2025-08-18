@@ -118,7 +118,7 @@ void AlertsScreen::handleButtonPress(int button) {
             moveDown();
             break;
         case ButtonInput::BUTTON_C:
-            toggleRead();
+            openDetail();
             break;
     }
 }
@@ -147,6 +147,21 @@ void AlertsScreen::moveDown() {
     ensureSelectionVisible();
     markForFullRedraw();
     Serial.printf("AlertsScreen: %d -> %d (down)\n", old, selectedIndex);
+}
+
+void AlertsScreen::openDetail() {
+    if (selectedIndex < 0 || selectedIndex >= messageCount) return;
+    // Mark as read
+    messages[selectedIndex].unread = false;
+    // Lazily create detail screen
+    if (!detailScreen) {
+        detailScreen = new AlertDetailScreen(display, this);
+    }
+    detailScreen->setMessage(messages[selectedIndex]);
+    ScreenManager* manager = GlobalScreenManager::getInstance();
+    if (manager) {
+        manager->pushScreen(detailScreen);
+    }
 }
 
 void AlertsScreen::toggleRead() {
