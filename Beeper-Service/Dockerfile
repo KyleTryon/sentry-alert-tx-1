@@ -1,0 +1,46 @@
+# syntax=docker/dockerfile:1.7-labs
+# Hyper-optimized multi-stage build for minimal image size and maximum caching
+
+# Build stage - Use Node.js 22 LTS (Jod) - Active LTS as of August 2025
+FROM node:22-alpine AS builder
+
+# Set working directory
+WORKDIR /app
+
+# Copy package files ONLY (best caching - these change least frequently)
+COPY package.json ./
+
+# Install dependencies using npm (smaller than pnpm for final image)
+# Use npm ci for faster, reproducible, clean installs
+RUN npm ci --only=production --no-audit --no-fund && \
+    cp -R node_modules prod_node_modules && \
+    npm ci --no-audit --no-fund
+
+# Copy source files (changes more frequently than deps)
+COPY tsconfig.json ./
+COPY src/ ./src/
+
+# Build application
+RUN npm run build && \
+    # Remove source maps and other dev artifacts to reduce size
+    find dist -name "*.map" -delete
+
+# Production stage - Ultra-minimal distroless image with Node.js 22 LTS (Jod)
+FROM gcr.io/distroless/nodejs22-debian12:nonroot AS production
+
+# Set working directory
+WORKDIR /app
+
+# Copy only production dependencies and built app from builder
+COPY --from=builder /app/prod_node_modules ./node_modules
+COPY --from=builder /app/dist ./dist
+COPY --from=builder /app/package.json ./
+
+# Use distroless nonroot user (uid 65532)
+USER 65532:65532
+
+# Expose port
+EXPOSE 3000
+
+# No shell available in distroless, so simple command
+CMD ["dist/index.js"]

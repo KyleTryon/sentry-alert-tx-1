@@ -1,0 +1,38 @@
+{
+  "name": "beeper-service",
+  "version": "1.0.0",
+  "description": "MQTT-based message relay for Sentry alert webhooks to IoT devices",
+  "main": "dist/index.js",
+  "scripts": {
+    "dev": "tsx watch src/index.ts",
+    "build": "tsc && npm run build:optimize",
+    "build:optimize": "echo 'Build optimized for production'",
+    "start": "node dist/index.js",
+    "test": "vitest",
+    "test:coverage": "vitest --coverage",
+    "lint": "eslint src/**/*.ts",
+    "lint:fix": "eslint src/**/*.ts --fix",
+    "type-check": "tsc --noEmit"
+  },
+  "keywords": ["sentry", "webhook", "mqtt", "iot", "typescript", "fastify"],
+  "author": "",
+  "license": "MIT",
+  "dependencies": {
+    "fastify": "^4.24.3",
+    "mqtt": "^5.3.4",
+    "zod": "^3.22.4",
+    "crypto": "^1.0.1"
+  },
+  "devDependencies": {
+    "@types/node": "^20.9.0",
+    "@typescript-eslint/eslint-plugin": "^6.11.0",
+    "@typescript-eslint/parser": "^6.11.0",
+    "eslint": "^8.54.0",
+    "tsx": "^4.1.1",
+    "typescript": "^5.2.2",
+    "vitest": "^0.34.6"
+  },
+  "engines": {
+    "node": ">=18.0.0"
+  }
+}

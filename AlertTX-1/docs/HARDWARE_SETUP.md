@@ -31,7 +31,7 @@ The Alert TX-1 is built on the Adafruit ESP32-S3 Reverse TFT Feather, providing 
 
 ## Pin Assignments
 
-> **📋 Pinout Reference**: For a complete pinout reference with detailed GPIO mappings, circuit diagrams, and troubleshooting information, see [Pinout Reference](pinout-reference.md).
+> **📋 Pinout Reference**: For a complete pinout reference with detailed GPIO mappings, circuit diagrams, and troubleshooting information, see [Pinout Reference](PINOUT_REFERENCE.md).
 
 ### Button Configuration
 
@@ -148,20 +148,40 @@ tft.setRotation(3);
 #### Buzzer Installation
 
 1. **Buzzer Specifications**
-   - **Model**: [Passive Piezo Buzzer 9025](https://www.aliexpress.us/item/2251832678338636.html)
-   - **Size**: 9mm x 2.5mm
+   - **Model**: [KLJ-9025-3627 Passive Buzzer](https://www.aliexpress.us/item/2251832678338636.html)
+   - **Size**: 9mm x 2.5mm (9025 format)
    - **Type**: Passive piezo buzzer (requires PWM drive signal)
-   - **Frequency Range**: 100Hz - 20kHz
-   - **Operating Voltage**: 3-24V
+   - **Resonant Frequency**: 2731 Hz (optimal frequency)
+   - **Operating Voltage**: 2.5-4.5V (Vp-p, square wave)
+   - **Rated Voltage**: 3.6V (Vp-p)
+   - **Current Consumption**: 100mA max at rated voltage
+   - **Sound Level**: 85dB minimum at 10cm
+   - **Coil Resistance**: 16 ± 3Ω
+   - **Operating Temperature**: -30°C to +70°C
 
 2. **Buzzer Placement**
    - Position the buzzer for optimal sound projection
    - Ensure it doesn't interfere with other components
    - Consider adding a small enclosure for better audio resonance
 
-3. **Buzzer Wiring**
-   - Connect positive terminal to `BUZZER_PIN` (GPIO15)
+3. **Buzzer Wiring Options**
+
+   **Option 1: Direct Connection (Current Implementation)**
+   - Connect positive terminal to `BUZZER_PIN` (GPIO12)
    - Connect negative terminal to GND
+   - **Note**: This provides reduced volume (~50-60% of max) due to GPIO current limitations
+   
+   **Option 2: Transistor Driver (Recommended for Full Volume)**
+   - Use NPN transistor (e.g., 2N2222) to amplify current
+   - GPIO12 → 1kΩ resistor → transistor base
+   - 3.3V → buzzer positive → transistor collector
+   - Transistor emitter → GND
+   - **Result**: Full 100mA current capability for maximum 85dB output
+   
+   **Current Setup Analysis:**
+   - ESP32-S3 GPIO provides ~12-20mA max (vs 100mA buzzer rating)
+   - Direct connection works but at reduced volume
+   - No resistor needed for current limiting with direct connection
    - Use appropriate wire gauge (22-24 AWG)
    - **Polarity matters** - ensure correct positive/negative connections
 

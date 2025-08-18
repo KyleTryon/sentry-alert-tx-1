@@ -21,7 +21,6 @@
 class GamesScreen : public Screen {
 private:
     MenuContainer* gamesMenu;
-    class PongScreen* pongScreen;
     static GamesScreen* instance;
     
 public:
@@ -40,8 +39,14 @@ public:
 private:
     void setupMenu();
     static void pongCallback();
+    static void snakeCallback();
+    static void beeperHeroCallback();
     void onPongSelected();
+    void onSnakeSelected();
+    void onBeeperHeroSelected();
     void navigateToPong();
+    void navigateToSnake();
+    void navigateToBeeperHero();
 };
 
 #endif // GAMESSCREEN_H

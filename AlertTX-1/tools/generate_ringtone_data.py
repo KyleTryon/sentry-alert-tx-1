@@ -3,19 +3,21 @@
 RTTTL Data Generator for Alert TX-1
 
 This script scans the data/ringtones/ directory and generates a C++ header file
-containing all RTTTL ringtone data as binary format only. The binary format is 
-50-70% smaller than text RTTTL, providing significant memory savings.
+containing all RTTTL ringtone data in multiple formats:
+- Binary RTTTL (compact)
+- Text RTTTL (for AnyRtttl nonblocking playback)
+- BeeperHero Track data (optimized binary for rhythm gameplay)
 
 Features:
 - Automatic caching: Only regenerates when RTTTL files change
-- Binary format only: Maximum memory efficiency
+- Multiple formats: Flexible at runtime (audio + gameplay)
 - Hash-based detection: Fast change detection
 
 Usage:
     python3 tools/generate_ringtone_data.py
 
 Output:
-    src/ringtones/ringtone_data.h - Generated header file with embedded RTTTL data
+    src/ringtones/ringtone_data.h - Generated header file with embedded RTTTL and track data
     .ringtone_cache - Cache file for change detection
 """
 
@@ -229,6 +231,146 @@ def parse_rtttl_to_binary(rtttl_text):
     
     return binary_data
 
+def parse_rtttl_to_track(rtttl_text):
+    """
+    Build BeeperHero track data (BPHR format) from an RTTTL string.
+    Returns a list of ints (bytes) or None on failure.
+    """
+    if not rtttl_text or ':' not in rtttl_text:
+        return None
+
+    parts = rtttl_text.split(':', 2)
+    if len(parts) < 3:
+        return None
+
+    song_name = parts[0].strip()
+    defaults = parts[1]
+    notes_text = parts[2]
+
+    # Defaults
+    default_duration = 4
+    default_octave = 5
+    default_bpm = 160
+    for d in defaults.split(','):
+        d = d.strip()
+        if d.startswith('d='):
+            try:
+                default_duration = int(d.split('=')[1])
+            except Exception:
+                pass
+        elif d.startswith('o='):
+            try:
+                default_octave = int(d.split('=')[1])
+            except Exception:
+                pass
+        elif d.startswith('b='):
+            try:
+                default_bpm = int(d.split('=')[1])
+            except Exception:
+                pass
+
+    whole_note_ms = int(60000 * 4 / max(1, default_bpm))
+
+    def lane_from_octave(octave: int) -> int:
+        if octave <= 4:
+            return 0
+        elif octave == 5:
+            return 1
+        else:
+            return 2
+
+    parsed_notes = []  # (start_ms, duration_ms, lane, flags)
+    current_time = 0
+    for raw in notes_text.split(','):
+        note = raw.strip()
+        if not note:
+            continue
+
+        duration = default_duration
+        octave = default_octave
+        letter = 'p'
+        is_dotted = False
+
+        m = re.match(r'^(\d+)', note)
+        if m:
+            duration = int(m.group(1))
+            note = note[m.end():]
+
+        if note and note[0].lower() in 'cdefgabp':
+            letter = note[0].lower()
+            note = note[1:]
+
+        if note.startswith('#'):
+            # we ignore sharp for lane mapping
+            note = note[1:]
+
+        m = re.match(r'^(\d+)', note)
+        if m:
+            octave = int(m.group(1))
+            note = note[m.end():]
+
+        if note.startswith('.'):
+            is_dotted = True
+
+        base_div = max(1, duration)
+        dur_ms = int(whole_note_ms / base_div)
+        if is_dotted:
+            dur_ms = int(dur_ms * 1.5)
+
+        if letter == 'p':
+            current_time += dur_ms
+            continue
+
+        lane = lane_from_octave(octave)
+        flags = 0
+        parsed_notes.append((current_time, dur_ms, lane, flags))
+        current_time += dur_ms
+
+    # Build header (BPHR)
+    magic = b'BPHR'
+    version = 1
+    song_name_bytes = song_name.encode('ascii', errors='ignore')
+    if len(song_name_bytes) > 63:
+        song_name_bytes = song_name_bytes[:63]
+    song_name_length = len(song_name_bytes)
+    note_count = len(parsed_notes)
+    song_duration = current_time
+    bpm = max(1, min(1000, default_bpm))
+    reserved = 0
+
+    blob = []
+    blob.extend(list(magic))
+    blob.append(version & 0xFF)
+    blob.append(song_name_length & 0xFF)
+    blob.extend([note_count & 0xFF, (note_count >> 8) & 0xFF])
+    blob.extend([
+        song_duration & 0xFF,
+        (song_duration >> 8) & 0xFF,
+        (song_duration >> 16) & 0xFF,
+        (song_duration >> 24) & 0xFF,
+    ])
+    blob.extend([bpm & 0xFF, (bpm >> 8) & 0xFF])
+    blob.extend([reserved & 0xFF, (reserved >> 8) & 0xFF])
+
+    # name + null terminator
+    blob.extend(list(song_name_bytes))
+    blob.append(0)
+
+    # notes
+    for start_ms, dur_ms, lane, flags in parsed_notes:
+        blob.extend([
+            start_ms & 0xFF,
+            (start_ms >> 8) & 0xFF,
+            (start_ms >> 16) & 0xFF,
+            (start_ms >> 24) & 0xFF,
+            dur_ms & 0xFF,
+            (dur_ms >> 8) & 0xFF,
+            lane & 0xFF,
+            flags & 0xFF,
+        ])
+
+    return blob
+
 def generate_header_file(ringtone_files):
     """Generate the C++ header file with embedded RTTTL data"""
     
@@ -240,13 +382,13 @@ def generate_header_file(ringtone_files):
 
 #include <Arduino.h>
 
-// RTTTL ringtone data - embedded at compile time (binary format only)
+// RTTTL ringtone data - embedded at compile time (multiple formats)
 // Generated from {len(ringtone_files)} files in data/ringtones/
-// Binary format provides 50-70% memory savings over text RTTTL
+// Includes: Binary RTTTL, Text RTTTL, and BeeperHero Track data
 
 """
     
-    # Add ringtone data arrays (binary format only)
+    # Add ringtone data arrays (all formats)
     ringtone_names = []
     for filename, content, rtttl_name in ringtone_files:
         cpp_name = sanitize_name(filename)
@@ -254,6 +396,10 @@ def generate_header_file(ringtone_files):
         
         # Generate binary data
         binary_data = parse_rtttl_to_binary(content)
+        # Text RTTTL
+        safe_text = content.replace('"', '\\"')
+        # BeeperHero Track
+        track_data = parse_rtttl_to_track(content)
         
         header_content += f"""// {rtttl_name} - from {filename}
 """
@@ -261,24 +407,42 @@ def generate_header_file(ringtone_files):
         if binary_data:
             # Convert binary data to C++ array
             binary_array = ', '.join([f'0x{b:02X}' for b in binary_data])
-            header_content += f"""const unsigned char {cpp_name}[] = {{{binary_array}}};
-const int {cpp_name}_length = {len(binary_data)};
+            header_content += f"""const unsigned char {cpp_name}_binary[] PROGMEM = {{{binary_array}}};
+const size_t {cpp_name}_binary_size = {len(binary_data)};
 """
         else:
             header_content += f"""// Binary conversion failed for {rtttl_name}
-const unsigned char* {cpp_name} = nullptr;
-const int {cpp_name}_length = 0;
+const unsigned char* {cpp_name}_binary = nullptr;
+const size_t {cpp_name}_binary_size = 0;
 """
         
+        # Text RTTTL string
+        header_content += f"""const char {cpp_name}_text[] PROGMEM = "{safe_text}";
+"""
+
+        # Track data
+        if track_data:
+            track_array = ', '.join([f'0x{b:02X}' for b in track_data])
+            header_content += f"""const uint8_t {cpp_name}_track[] PROGMEM = {{{track_array}}};
+const size_t {cpp_name}_track_size = {len(track_data)};
+"""
+        else:
+            header_content += f"""const uint8_t* {cpp_name}_track = nullptr;
+const size_t {cpp_name}_track_size = 0;
+"""
+
         header_content += "\n"
     
     # Add ringtone registry
     header_content += f"""
-// Ringtone registry - maps names to binary data
+// Ringtone registry - maps names to all formats
 struct RingtoneEntry {{
     const char* name;
-    const unsigned char* data;
-    int length;
+    const unsigned char* binary_data;
+    size_t binary_size;
+    const char* text_data;
+    const uint8_t* track_data;
+    size_t track_size;
     const char* filename;
 }};
 
@@ -286,7 +450,7 @@ static const RingtoneEntry RINGTONE_REGISTRY[] = {{
 """
     
     for cpp_name, rtttl_name in ringtone_names:
-        header_content += f'    {{"{rtttl_name}", {cpp_name}, {cpp_name}_length, "{cpp_name}"}},\n'
+        header_content += f'    {{"{rtttl_name}", {cpp_name}_binary, {cpp_name}_binary_size, {cpp_name}_text, {cpp_name}_track, {cpp_name}_track_size, "{cpp_name}"}},\n'
     
     header_content += f"""    {{nullptr, nullptr, 0, nullptr}}  // End marker
 }};
@@ -294,35 +458,35 @@ static const RingtoneEntry RINGTONE_REGISTRY[] = {{
 // Total number of ringtones
 static const int RINGTONE_COUNT = {len(ringtone_files)};
 
-// Helper functions
-inline const unsigned char* getRingtoneData(const char* name) {{
+// Helper functions - Binary RTTTL
+inline const unsigned char* getBinaryRTTTL(const char* name) {{
     for (int i = 0; i < RINGTONE_COUNT; i++) {{
         if (strcmp(RINGTONE_REGISTRY[i].name, name) == 0) {{
-            return RINGTONE_REGISTRY[i].data;
+            return RINGTONE_REGISTRY[i].binary_data;
         }}
     }}
     return nullptr;
 }}
 
-inline const unsigned char* getRingtoneData(int index) {{
+inline const unsigned char* getBinaryRTTTL(int index) {{
     if (index >= 0 && index < RINGTONE_COUNT) {{
-        return RINGTONE_REGISTRY[index].data;
+        return RINGTONE_REGISTRY[index].binary_data;
     }}
     return nullptr;
 }}
 
-inline int getRingtoneLength(const char* name) {{
+inline size_t getBinaryRTTTLSize(const char* name) {{
     for (int i = 0; i < RINGTONE_COUNT; i++) {{
         if (strcmp(RINGTONE_REGISTRY[i].name, name) == 0) {{
-            return RINGTONE_REGISTRY[i].length;
+            return RINGTONE_REGISTRY[i].binary_size;
         }}
     }}
     return 0;
 }}
 
-inline int getRingtoneLength(int index) {{
+inline size_t getBinaryRTTTLSize(int index) {{
     if (index >= 0 && index < RINGTONE_COUNT) {{
-        return RINGTONE_REGISTRY[index].length;
+        return RINGTONE_REGISTRY[index].binary_size;
     }}
     return 0;
 }}
@@ -341,6 +505,56 @@ inline int findRingtoneIndex(const char* name) {{
         }}
     }}
     return -1;
+}}
+
+// Text RTTTL helpers
+inline const char* getTextRTTTL(int index) {{
+    if (index >= 0 && index < RINGTONE_COUNT) {{
+        return RINGTONE_REGISTRY[index].text_data;
+    }}
+    return nullptr;
+}}
+
+inline const char* getTextRTTTL(const char* name) {{
+    for (int i = 0; i < RINGTONE_COUNT; i++) {{
+        if (strcmp(RINGTONE_REGISTRY[i].name, name) == 0) {{
+            return RINGTONE_REGISTRY[i].text_data;
+        }}
+    }}
+    return nullptr;
+}}
+
+// BeeperHero Track helpers
+inline const uint8_t* getBeeperHeroTrackData(int index) {{
+    if (index >= 0 && index < RINGTONE_COUNT) {{
+        return RINGTONE_REGISTRY[index].track_data;
+    }}
+    return nullptr;
+}}
+
+inline const uint8_t* getBeeperHeroTrackData(const char* name) {{
+    for (int i = 0; i < RINGTONE_COUNT; i++) {{
+        if (strcmp(RINGTONE_REGISTRY[i].name, name) == 0) {{
+            return RINGTONE_REGISTRY[i].track_data;
+        }}
+    }}
+    return nullptr;
+}}
+
+inline size_t getBeeperHeroTrackSize(int index) {{
+    if (index >= 0 && index < RINGTONE_COUNT) {{
+        return RINGTONE_REGISTRY[index].track_size;
+    }}
+    return 0;
+}}
+
+inline size_t getBeeperHeroTrackSize(const char* name) {{
+    for (int i = 0; i < RINGTONE_COUNT; i++) {{
+        if (strcmp(RINGTONE_REGISTRY[i].name, name) == 0) {{
+            return RINGTONE_REGISTRY[i].track_size;
+        }}
+    }}
+    return 0;
 }}
 
 #endif // RINGTONE_DATA_H
@@ -445,7 +659,7 @@ def main():
     print("\n✅ RTTTL data generation complete!")
     print("\nNext steps:")
     print("1. Include 'ringtone_data.h' in your RingtonePlayer class")
-    print("2. Use getRingtoneData() to access binary ringtone data")
+    print("2. Use getTextRTTTL()/getBeeperHeroTrackData() as needed")
     print("3. Binary format provides significant memory savings")
     print("4. Script will automatically cache changes - re-run when adding new files")
 

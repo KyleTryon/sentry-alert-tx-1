@@ -1,0 +1,101 @@
+# Production Docker Compose with Caddy SSL
+version: '3.8'
+
+services:
+  beeper-service:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      target: production
+    container_name: beeper-service
+    environment:
+      - NODE_ENV=${NODE_ENV:-production}
+      - PORT=3000
+      - HOST=0.0.0.0
+      - MQTT_BROKER_URL=${MQTT_BROKER_URL:-mqtt://mosquitto:1883}
+      - MQTT_USERNAME=${MQTT_USERNAME}
+      - MQTT_PASSWORD=${MQTT_PASSWORD}
+      - MQTT_CLIENT_ID=${MQTT_CLIENT_ID:-beeper-service}
+      - MQTT_TOPIC_PREFIX=${MQTT_TOPIC_PREFIX:-alerts}
+      - MQTT_QOS=${MQTT_QOS:-1}
+      - SENTRY_WEBHOOK_SECRET=${SENTRY_WEBHOOK_SECRET}
+      - SENTRY_ALLOWED_IPS=${SENTRY_ALLOWED_IPS}
+      - LOG_LEVEL=${LOG_LEVEL:-warn}
+    restart: unless-stopped
+    healthcheck:
+      test: ["NONE"]  # Distroless has no shell - use external monitoring
+      # Alternative: Use a sidecar container or external health checks
+    networks:
+      - beeper-network
+    depends_on:
+      mosquitto:
+        condition: service_started
+    deploy:
+      resources:
+        limits:
+          memory: 256M
+        reservations:
+          memory: 128M
+
+  mosquitto:
+    image: eclipse-mosquitto:2.0
+    container_name: mosquitto
+    volumes:
+      - ./mosquitto.conf:/mosquitto/config/mosquitto.conf:ro
+      - ./passwd:/mosquitto/config/passwd:rw
+      - ./acl:/mosquitto/config/acl:ro
+      - mosquitto_data:/mosquitto/data
+      - mosquitto_log:/mosquitto/log
+    restart: unless-stopped
+    networks:
+      - beeper-network
+    deploy:
+      resources:
+        limits:
+          memory: 128M
+        reservations:
+          memory: 64M
+
+  # Caddy for SSL termination and reverse proxy
+  caddy:
+    image: caddy:2-alpine
+    container_name: caddy
+    ports:
+      - "80:80"
+      - "443:443"
+      - "443:443/udp"  # HTTP/3
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile
+      - caddy_data:/data
+      - caddy_config:/config
+      - caddy_logs:/var/log/caddy
+    environment:
+      - DOMAIN=${DOMAIN:-localhost}
+    restart: unless-stopped
+    networks:
+      - beeper-network
+    depends_on:
+      - beeper-service
+      - mosquitto
+    deploy:
+      resources:
+        limits:
+          memory: 128M
+        reservations:
+          memory: 64M
+
+volumes:
+  mosquitto_data:
+    driver: local
+  mosquitto_log:
+    driver: local
+  caddy_data:
+    driver: local
+  caddy_config:
+    driver: local
+  caddy_logs:
+    driver: local
+
+networks:
+  beeper-network:
+    driver: bridge

@@ -35,6 +35,8 @@ void Screen::enter() {
 }
 
 void Screen::exit() {
+    // Ensure subclasses can release resources
+    cleanup();
     active = false;
     Serial.printf("Exiting screen: %s\n", screenName);
 }

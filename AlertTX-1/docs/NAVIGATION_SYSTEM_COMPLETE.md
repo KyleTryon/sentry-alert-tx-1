@@ -190,15 +190,20 @@ if (buttonManager.isLongPressed(ButtonManager::BUTTON_A) ||
 ## 📁 **File Structure**
 
 ```
-AlertTX-1/src/ui/screens/
-├── SplashScreen.h/cpp         # Boot screen with auto-transition
-├── MainMenuScreen.h/cpp       # Main navigation hub
-├── AlertsScreen.h/cpp         # Alert system information
-├── GamesScreen.h/cpp          # Game library display
-└── SettingsScreen.h/cpp       # Settings menu with sub-options
+AlertTX-1/src/ui/
+├── screens/
+│   ├── SplashScreen.h/cpp         # Boot screen with auto-transition
+│   ├── MainMenuScreen.h/cpp       # Main navigation hub
+│   ├── AlertsScreen.h/cpp         # Alert system information
+│   ├── GamesScreen.h/cpp          # Game library / launcher
+│   └── SettingsScreen.h/cpp       # Settings menu with sub-options
+└── games/
+    ├── PongScreen.h/cpp           # GameScreen-based
+    ├── SnakeScreen.h/cpp          # GameScreen-based
+    └── BeeperHeroScreen.h/cpp     # GameScreen-based (lane dirty tracking)
 ```
 
-**Total Implementation:** 5 screens, 10 files, complete navigation system
+**Total Implementation:** 5+ screens (UI) + 3 games
 
 ---
 

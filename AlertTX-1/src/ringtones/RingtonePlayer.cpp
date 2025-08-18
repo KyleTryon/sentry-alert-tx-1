@@ -56,15 +56,22 @@ void RingtonePlayer::playRingtone(const char* rtttl) {
 }
 
 void RingtonePlayer::playRingtoneByName(const char* name) {
-    // For now, just print a message - binary format support needs custom implementation
-    Serial.printf("Binary ringtone playback not yet implemented: %s\n", name);
-    // TODO: Implement binary to RTTTL conversion or custom binary player
+    if (!name) return;
+    const char* text = getTextRTTTL(name);
+    if (!text) {
+        Serial.printf("Ringtone not found: %s\n", name);
+        return;
+    }
+    playRingtone(text);
 }
 
 void RingtonePlayer::playRingtoneByIndex(int index) {
-    // For now, just print a message - binary format support needs custom implementation
-    Serial.printf("Binary ringtone playback not yet implemented: index %d\n", index);
-    // TODO: Implement binary to RTTTL conversion or custom binary player
+    const char* text = getTextRTTTL(index);
+    if (!text) {
+        Serial.printf("Ringtone index not found: %d\n", index);
+        return;
+    }
+    playRingtone(text);
 }
 
 
@@ -217,11 +224,11 @@ int RingtonePlayer::getRingtoneCount() const {
 }
 
 const char* RingtonePlayer::getRingtoneName(int index) const {
-    return getRingtoneName(index);
+    return ::getRingtoneName(index);
 }
 
 int RingtonePlayer::findRingtoneIndex(const char* name) const {
-    return findRingtoneIndex(name);
+    return ::findRingtoneIndex(name);
 }
 
 void RingtonePlayer::playTone(uint16_t frequency, unsigned long duration) {

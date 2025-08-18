@@ -27,7 +27,7 @@ make dev      # upload + serial monitor
 - UI framework: [UI_FRAMEWORK_OVERVIEW.md](UI_FRAMEWORK_OVERVIEW.md)
 - Audio: [anyrtttl-integration.md](anyrtttl-integration.md), [ringtone-build-system.md](ringtone-build-system.md)
 - Icons: [ICON_SYSTEM_SUMMARY.md](ICON_SYSTEM_SUMMARY.md)
- - Games: Pong demo lives in `src/ui/screens/PongScreen.*` and demonstrates efficient partial redraws, score header, and screen ownership (ephemeral app)
+ - Games: Pong demo lives in `src/ui/games/PongScreen.*` and demonstrates efficient partial redraws, score header, and screen ownership (ephemeral app)
 
 ## Controls
 - Button A (GPIO0): Up/Previous

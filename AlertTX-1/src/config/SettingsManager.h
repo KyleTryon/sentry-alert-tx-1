@@ -39,6 +39,10 @@ private:
     static const char* MQTT_CLIENT_ID_KEY;  // "mqtt_cid"
     static const char* MQTT_SUB_TOPIC_KEY;  // "mqtt_sub"
     static const char* MQTT_PUB_TOPIC_KEY;  // "mqtt_pub"
+    // Power management keys
+    static const char* PWR_INACT_MS_KEY;     // "pwr_inact_ms"
+    static const char* PWR_DIM_GRACE_MS_KEY; // "pwr_dim_ms"
+    static const char* PWR_SLEEP_MS_KEY;     // "pwr_sleep_ms"
     
     // Validation constants
     static const int MIN_THEME_INDEX = 0;
@@ -126,6 +130,11 @@ public:
     static void setMqttClientId(const String& clientId);
     static void setMqttSubscribeTopic(const String& topic);
     static void setMqttPublishTopic(const String& topic);
+
+    // Power management (read-only for now; configurable later via UI)
+    static uint32_t getInactivityTimeoutMs();
+    static uint32_t getDimGraceMs();
+    static uint32_t getDeepSleepIntervalMs();
 };
 
 #endif // SETTINGSMANAGER_H

@@ -1,0 +1,79 @@
+# Development files
+node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+.pnpm-debug.log*
+
+# Build artifacts
+dist/
+build/
+*.tsbuildinfo
+
+# Environment and secrets
+.env*
+!env.template
+
+# Documentation
+*.md
+docs/
+CHANGELOG.md
+
+# Git
+.git/
+.gitignore
+
+# IDE and editor files
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# OS files
+.DS_Store
+.DS_Store?
+._*
+Thumbs.db
+ehthumbs.db
+
+# Test files
+tests/
+test/
+**/*.test.ts
+**/*.spec.ts
+coverage/
+.nyc_output
+
+# CI/CD
+.github/
+.gitlab-ci.yml
+
+# Docker
+Dockerfile*
+docker-compose*.yml
+.dockerignore
+
+# Linting
+.eslintcache
+
+# Temporary
+tmp/
+temp/
+
+# Logs
+logs/
+*.log
+
+# MQTT and deployment files
+mosquitto.conf
+passwd
+acl
+Caddyfile
+deploy-*.sh
+monitor.sh
+
+# Package manager files (keep only package.json)
+pnpm-lock.yaml
+yarn.lock
+package-lock.json

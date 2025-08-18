@@ -18,6 +18,9 @@ const char* SettingsManager::MQTT_PORT_KEY = "mqtt_port";
 const char* SettingsManager::MQTT_CLIENT_ID_KEY = "mqtt_cid";
 const char* SettingsManager::MQTT_SUB_TOPIC_KEY = "mqtt_sub";
 const char* SettingsManager::MQTT_PUB_TOPIC_KEY = "mqtt_pub";
+const char* SettingsManager::PWR_INACT_MS_KEY = "pwr_inact_ms";
+const char* SettingsManager::PWR_DIM_GRACE_MS_KEY = "pwr_dim_ms";
+const char* SettingsManager::PWR_SLEEP_MS_KEY = "pwr_sleep_ms";
 
 void SettingsManager::begin() {
     Serial.println("SettingsManager: Initializing NVS...");
@@ -243,3 +246,33 @@ void SettingsManager::setMqttPort(int port) { prefs.putInt(MQTT_PORT_KEY, port);
 void SettingsManager::setMqttClientId(const String& clientId) { prefs.putString(MQTT_CLIENT_ID_KEY, clientId); }
 void SettingsManager::setMqttSubscribeTopic(const String& topic) { prefs.putString(MQTT_SUB_TOPIC_KEY, topic); }
 void SettingsManager::setMqttPublishTopic(const String& topic) { prefs.putString(MQTT_PUB_TOPIC_KEY, topic); }
+
+// Power management getters with sane defaults if unset
+uint32_t SettingsManager::getInactivityTimeoutMs() {
+    // Default to settings.h value if present; else 60000
+    uint32_t v = (uint32_t)prefs.getULong(PWR_INACT_MS_KEY, 0);
+    if (v == 0) {
+        #ifdef INACTIVITY_TIMEOUT_MS
+        return (uint32_t)INACTIVITY_TIMEOUT_MS;
+        #else
+        return 60000UL;
+        #endif
+    }
+    return v;
+}
+
+uint32_t SettingsManager::getDimGraceMs() {
+    uint32_t v = (uint32_t)prefs.getULong(PWR_DIM_GRACE_MS_KEY, 0);
+    if (v == 0) {
+        return 2000UL;
+    }
+    return v;
+}
+
+uint32_t SettingsManager::getDeepSleepIntervalMs() {
+    uint32_t v = (uint32_t)prefs.getULong(PWR_SLEEP_MS_KEY, 0);
+    if (v == 0) {
+        return 60000UL;
+    }
+    return v;
+}

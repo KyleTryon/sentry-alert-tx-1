@@ -144,15 +144,26 @@ bool ScreenManager::switchToScreen(Screen* screen) {
 void ScreenManager::clearStack() {
     Serial.printf("Clearing screen stack (%d screens)\n", stackSize);
     
-    // Exit current screen
+    // Exit and delete current screen if owned
     if (currentScreen) {
         currentScreen->exit();
+        if (currentOwned) {
+            delete currentScreen;
+            currentOwned = false;
+        }
         currentScreen = nullptr;
     }
     
-    // Clear stack
+    // Clear stack, deleting owned screens
     for (int i = 0; i < stackSize; i++) {
-        screenStack[i] = nullptr;  // Don't delete - screens owned elsewhere
+        if (screenStack[i]) {
+            if (ownedStack[i]) {
+                screenStack[i]->exit();
+                delete screenStack[i];
+            }
+            screenStack[i] = nullptr;
+            ownedStack[i] = false;
+        }
     }
     stackSize = 0;
 }

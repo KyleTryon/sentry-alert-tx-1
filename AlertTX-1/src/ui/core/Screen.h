@@ -36,7 +36,7 @@ protected:
     
     // Screen identification
     int screenId;
-    
+
 public:
     Screen(Adafruit_ST7789* display, const char* name, int id = 0);
     virtual ~Screen();
@@ -82,6 +82,9 @@ protected:
     // Layout helpers
     bool hasOverlappingComponents() const;
     void optimizeComponentOrder();  // Sort by draw order for efficiency
+
+    // Cleanup hook for releasing resources (audio, allocations, etc.)
+    virtual void cleanup() {}
 };
 
 /**

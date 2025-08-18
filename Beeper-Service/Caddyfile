@@ -1,0 +1,61 @@
+# Caddy configuration for Beeper-Service
+# Handles SSL termination and WebSocket upgrades
+
+# Main HTTP API (replace with your domain)
+{$DOMAIN:localhost} {
+    # Health check endpoint
+    route /health {
+        reverse_proxy beeper-service:3000
+    }
+    
+    # Webhook endpoint
+    route /webhook {
+        reverse_proxy beeper-service:3000
+    }
+    
+    # Root endpoint
+    route / {
+        reverse_proxy beeper-service:3000
+    }
+    
+    # Enable logging
+    log {
+        output file /var/log/caddy/access.log
+        format json
+    }
+    
+    # Security headers
+    header {
+        # Remove server info
+        -Server
+        
+        # Security headers
+        X-Frame-Options "DENY"
+        X-Content-Type-Options "nosniff"
+        X-XSS-Protection "1; mode=block"
+        Referrer-Policy "strict-origin-when-cross-origin"
+        Strict-Transport-Security "max-age=31536000; includeSubDomains"
+    }
+}
+
+# MQTT WebSocket over SSL (replace with your domain)
+ws.{$DOMAIN:localhost} {
+    # WebSocket upgrade for MQTT
+    reverse_proxy mosquitto:9001
+    
+    # Enable logging
+    log {
+        output file /var/log/caddy/mqtt-access.log
+        format json
+    }
+}
+
+# Development configuration (HTTP only)
+:3000 {
+    reverse_proxy beeper-service:3000
+}
+
+# MQTT WebSocket development (HTTP only)
+:9001 {
+    reverse_proxy mosquitto:9001
+}
