@@ -41,6 +41,9 @@ private:
     bool navigationEnabled = true;
     InputHandler inputHandler;
     
+    // Callback fired whenever the selected index changes
+    std::function<void(int)> selectionChangedCallback;
+    
 public:
     MenuContainer(Adafruit_ST7789* display, int x = 10, int y = 50);
     virtual ~MenuContainer();
@@ -62,6 +65,9 @@ public:
     void moveDown();
     void selectCurrent();
     void setSelectedIndex(int index);
+    
+    // Selection change callback
+    void setOnSelectionChanged(std::function<void(int)> callback) { selectionChangedCallback = callback; }
     
     // Input handling
     void handleButtonPress(int button);

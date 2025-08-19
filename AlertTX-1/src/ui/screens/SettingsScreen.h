@@ -7,6 +7,7 @@
 
 // Forward declaration for navigation
 class ThemeSelectionScreen;
+class RingtonesScreen;
 
 /**
  * SettingsScreen
@@ -38,6 +39,7 @@ private:
     // Child screen for theme selection
     ThemeSelectionScreen* themeSelectionScreen;
     class SystemInfoScreen* systemInfoScreen;
+    RingtonesScreen* ringtonesScreen;
     
     // Static instance for callbacks
     static SettingsScreen* instance;

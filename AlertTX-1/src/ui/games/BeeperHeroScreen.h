@@ -55,6 +55,9 @@ private:
     // Game flow
     GameState state = SONG_SELECT;
     int selectedSongIndex = 0;
+    int pendingPreviewIndex = -1;
+    unsigned long previewDueAtMs = 0;
+    static const unsigned long PREVIEW_DEBOUNCE_MS = 200; // ms
     unsigned long countdownStartMs = 0;
 
     // Track-driven spawning

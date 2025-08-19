@@ -1,6 +1,7 @@
 #include "SettingsScreen.h"
 #include "../core/ScreenManager.h"
 #include "ThemeSelectionScreen.h"
+#include "RingtonesScreen.h"
 #include "SystemInfoScreen.h"
 #include "../../config/SettingsManager.h"
 #include "../../ringtones/RingtonePlayer.h"
@@ -92,11 +93,13 @@ void SettingsScreen::handleButtonPress(int button) {
 
 void SettingsScreen::onRingtoneSelected() {
     Serial.println("SettingsScreen: Ringtone selected");
-    
-    cycleRingtone();
-    
-    // Force redraw to show new ringtone info
-    markForFullRedraw();
+    if (ringtonesScreen) {
+        ScreenManager* manager = GlobalScreenManager::getInstance();
+        if (manager) {
+            manager->pushScreen(ringtonesScreen);
+            Serial.println("SettingsScreen: Navigated to ringtones");
+        }
+    }
 }
 
 void SettingsScreen::onThemesSelected() {
@@ -224,6 +227,7 @@ void SettingsScreen::initializeChildScreens() {
     
     // Create theme selection screen
     themeSelectionScreen = new ThemeSelectionScreen(display);
+    ringtonesScreen = new RingtonesScreen(display);
     systemInfoScreen = new SystemInfoScreen(display);
     
     Serial.println("SettingsScreen: Child screens initialized");
@@ -235,6 +239,10 @@ void SettingsScreen::cleanupChildScreens() {
     if (themeSelectionScreen) {
         delete themeSelectionScreen;
         themeSelectionScreen = nullptr;
+    }
+    if (ringtonesScreen) {
+        delete ringtonesScreen;
+        ringtonesScreen = nullptr;
     }
     
     Serial.println("SettingsScreen: Child screens cleaned up");

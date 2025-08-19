@@ -60,6 +60,11 @@ void BeeperHeroScreen::handleButtonPress(int button) {
 
 void BeeperHeroScreen::updateGame() {
     if (state == SONG_SELECT) {
+        if (pendingPreviewIndex >= 0 && millis() >= previewDueAtMs) {
+            player.stop();
+            player.playRingtoneByIndex(pendingPreviewIndex);
+            pendingPreviewIndex = -1;
+        }
         return;
     }
 
@@ -297,6 +302,13 @@ void BeeperHeroScreen::buildSongSelectionMenu() {
             startCountdownForIndex(idx);
         });
     }
+    // Auto-preview currently highlighted song while scrolling
+    songMenu->setOnSelectionChanged([this](int newIndex) {
+        if (state != SONG_SELECT) return;
+        // Debounce preview to avoid rapid restarts while scrolling
+        pendingPreviewIndex = newIndex;
+        previewDueAtMs = millis() + PREVIEW_DEBOUNCE_MS;
+    });
     songMenu->autoLayout();
 }
 

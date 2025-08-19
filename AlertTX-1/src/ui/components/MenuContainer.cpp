@@ -178,6 +178,10 @@ void MenuContainer::moveUp() {
     scrollToSelected();
     markDirty();  // Force screen redraw
     
+    if (selectionChangedCallback && oldIndex != selectedIndex) {
+        selectionChangedCallback(selectedIndex);
+    }
+    
     Serial.printf("Menu navigation: %d -> %d (up), scroll offset: %d\n", 
                  oldIndex, selectedIndex, scrollOffset);
 }
@@ -191,6 +195,10 @@ void MenuContainer::moveDown() {
     updateSelection();
     scrollToSelected();
     markDirty();  // Force screen redraw
+    
+    if (selectionChangedCallback && oldIndex != selectedIndex) {
+        selectionChangedCallback(selectedIndex);
+    }
     
     Serial.printf("Menu navigation: %d -> %d (down), scroll offset: %d\n", 
                  oldIndex, selectedIndex, scrollOffset);
@@ -208,9 +216,13 @@ void MenuContainer::selectCurrent() {
 
 void MenuContainer::setSelectedIndex(int index) {
     if (isValidIndex(index)) {
+        int oldIndex = selectedIndex;
         selectedIndex = index;
         updateSelection();
         scrollToSelected();
+        if (selectionChangedCallback && oldIndex != selectedIndex) {
+            selectionChangedCallback(selectedIndex);
+        }
     }
 }
 
