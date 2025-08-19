@@ -62,8 +62,11 @@ usermod -aG sudo deployer
 ufw enable
 ufw allow ssh
 ufw allow 22/tcp
-ufw allow 3000/tcp    # Beeper-Service HTTP
-ufw allow 1883/tcp    # MQTT
+ufw allow 80/tcp      # HTTP (Caddy)
+ufw allow 443/tcp     # HTTPS (Caddy)
+ufw allow 1883/tcp    # MQTT (raw TCP)
+# If running WITHOUT Caddy (HTTP-only Option A), also open the app port:
+# ufw allow 3000/tcp   # Beeper-Service HTTP (only if exposing directly)
 ufw status
 
 # Optional: Change SSH port and disable root login
@@ -107,8 +110,7 @@ MQTT_QOS=1
 SENTRY_WEBHOOK_SECRET=your-webhook-secret-from-sentry
 SENTRY_ALLOWED_IPS=
 
-# Production Logging
-LOG_LEVEL=warn
+
 ```
 
 #### **5. Choose Deployment Mode**
@@ -122,14 +124,13 @@ docker compose up -d
 docker ps
 ```
 
-**Option B: Production with SSL (recommended)**
+**Option B: With SSL (Caddy) — recommended**
 ```bash
-# Copy production environment
-cp env.prod.template .env
-nano .env  # Set DOMAIN=your-domain.com
+# Set your domain in .env (e.g., DOMAIN=beeper.example.com)
+nano .env
 
-# Start with Caddy SSL
-docker compose -f docker-compose.prod.yml up -d
+# Bring up the full stack (Beeper-Service, Mosquitto broker, Caddy)
+docker compose up -d
 
 # Check status
 docker ps

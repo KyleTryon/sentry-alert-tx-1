@@ -20,7 +20,6 @@ services:
       - MQTT_QOS=${MQTT_QOS:-1}
       - SENTRY_WEBHOOK_SECRET=${SENTRY_WEBHOOK_SECRET}
       - SENTRY_ALLOWED_IPS=${SENTRY_ALLOWED_IPS}
-      - LOG_LEVEL=${LOG_LEVEL:-warn}
     restart: unless-stopped
     healthcheck:
       test: ["NONE"]  # Distroless has no shell - use external monitoring
@@ -46,6 +45,8 @@ services:
       - ./acl:/mosquitto/config/acl:ro
       - mosquitto_data:/mosquitto/data
       - mosquitto_log:/mosquitto/log
+    ports:
+      - "1883:1883"
     restart: unless-stopped
     networks:
       - beeper-network

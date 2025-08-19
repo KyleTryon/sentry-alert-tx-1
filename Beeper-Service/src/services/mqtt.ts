@@ -1,6 +1,5 @@
 import mqtt, { MqttClient } from 'mqtt';
 import { getConfig, type Config } from '../config/environment.js';
-import { logger } from '../utils/logger.js';
 import type { SentryWebhookPayload } from '../types/sentry.js';
 
 export interface MQTTMessage {
@@ -46,7 +45,7 @@ export class MQTTService {
         ...(this.config.MQTT_PASSWORD && { password: this.config.MQTT_PASSWORD }),
       };
 
-      logger.info('Connecting to MQTT broker', {
+      console.log('Connecting to MQTT broker', {
         brokerUrl: this.config.MQTT_BROKER_URL,
         clientId: this.config.MQTT_CLIENT_ID,
       });
@@ -56,7 +55,7 @@ export class MQTTService {
       this.client.on('connect', () => {
         this.isConnected = true;
         this.reconnectAttempts = 0;
-        logger.info('Connected to MQTT broker');
+        console.log('Connected to MQTT broker');
         
         // Process any queued messages
         this.processMessageQueue();
@@ -65,7 +64,7 @@ export class MQTTService {
       });
 
       this.client.on('error', (error) => {
-        logger.error('MQTT connection error', { error: error.message }, error);
+        console.error('MQTT connection error', { error: error.message }, error);
         
         if (!this.isConnected) {
           reject(error);
@@ -76,35 +75,35 @@ export class MQTTService {
 
       this.client.on('disconnect', () => {
         this.isConnected = false;
-        logger.warn('Disconnected from MQTT broker');
+        console.warn('Disconnected from MQTT broker');
         this.handleReconnection();
       });
 
       this.client.on('offline', () => {
         this.isConnected = false;
-        logger.warn('MQTT client went offline');
+        console.warn('MQTT client went offline');
       });
 
       this.client.on('reconnect', () => {
-        logger.info('Attempting to reconnect to MQTT broker');
+        console.log('Attempting to reconnect to MQTT broker');
       });
     });
   }
 
   private handleReconnection(): void {
     if (this.reconnectAttempts >= this.maxReconnectAttempts) {
-      logger.error('Max reconnection attempts reached');
+      console.error('Max reconnection attempts reached');
       return;
     }
 
     this.reconnectAttempts++;
     const delay = this.reconnectDelay * Math.pow(2, this.reconnectAttempts - 1);
     
-    logger.info(`Reconnecting to MQTT broker in ${delay}ms (attempt ${this.reconnectAttempts})`);
+    console.log(`Reconnecting to MQTT broker in ${delay}ms (attempt ${this.reconnectAttempts})`);
     
     setTimeout(() => {
       this.connect().catch((error) => {
-        logger.error('Reconnection failed', { error: error.message }, error);
+        console.error('Reconnection failed', { error: error.message }, error);
       });
     }, delay);
   }
@@ -114,7 +113,7 @@ export class MQTTService {
       return;
     }
 
-    logger.info(`Processing ${this.messageQueue.length} queued messages`);
+    console.log(`Processing ${this.messageQueue.length} queued messages`);
     
     while (this.messageQueue.length > 0) {
       const { topic, message, options } = this.messageQueue.shift()!;
@@ -129,12 +128,14 @@ export class MQTTService {
 
     this.client.publish(topic, message, options, (error) => {
       if (error) {
-        logger.error('Failed to publish MQTT message', {
+        console.error('Failed to publish MQTT message', {
           topic,
           error: error.message,
         }, error);
       } else {
-        logger.mqtt('Message published', topic, {
+        console.debug('MQTT Event', {
+          event: 'Message published',
+          topic,
           messageLength: message.length,
           qos: options.qos,
         });
@@ -152,7 +153,7 @@ export class MQTTService {
       retain: false,
     };
 
-    logger.info('Publishing alert to MQTT', {
+    console.log('Publishing alert to MQTT', {
       topic,
       messageId: message.id,
       priority: message.priority,
@@ -163,7 +164,7 @@ export class MQTTService {
       this.publishDirect(topic, messageJson, publishOptions);
     } else {
       // Queue the message for later delivery
-      logger.warn('MQTT client not connected, queueing message', {
+      console.warn('MQTT client not connected, queueing message', {
         topic,
         messageId: message.id,
       });
@@ -255,12 +256,12 @@ export class MQTTService {
 
   async disconnect(): Promise<void> {
     if (this.client) {
-      logger.info('Disconnecting from MQTT broker');
+      console.log('Disconnecting from MQTT broker');
       
       return new Promise((resolve) => {
         this.client!.end(false, {}, () => {
           this.isConnected = false;
-          logger.info('Disconnected from MQTT broker');
+          console.log('Disconnected from MQTT broker');
           resolve();
         });
       });

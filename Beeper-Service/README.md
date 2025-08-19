@@ -8,7 +8,8 @@
 
 - **Receives Sentry Webhooks:** Accepts incoming HTTP POST requests from Sentry's alerting system.
 - **MQTT Message Queue:** Publishes alert payloads to an MQTT topic for consumption by devices.
-- **Cloud-Native Deployment:** Designed for serverless platforms like Cloudflare Workers or Vercel Serverless Functions.
+- **Container-friendly Deployment:** Runs as a long-lived Node.js service (Docker, Docker Compose, Kubernetes, Fly.io, Railway, Render, etc.).
+- **Built-in MQTT Broker:** Ships with Eclipse Mosquitto (via Docker Compose) and optional WSS via Caddy.
 - **Queueing & Reliability:** Ensures messages are queued and delivered even if devices are temporarily offline.
 - **Simple REST API:** Exposes endpoints for health checks and (optionally) manual message injection/testing.
 
@@ -24,17 +25,26 @@
 
 ## Deployment
 
-Beeper-Service is designed for modern serverless/cloud platforms:
+Beeper-Service is designed to run as a persistent process. Recommended options:
 
-### Cloudflare Workers
-- **Recommended** for global low-latency delivery and edge compute.
-- Deploy using Wrangler CLI or Cloudflare dashboard.
-- Integrate with a managed MQTT broker (e.g., CloudMQTT, HiveMQ, EMQX Cloud).
+### Docker Compose (recommended)
+- Use the provided `docker-compose.yml` to run the Beeper-Service together with an embedded Mosquitto broker and Caddy for SSL.
+- Configure environment via `.env` (see `env.template`). Set `DOMAIN` for SSL.
 
-### Vercel Serverless Functions
-- Alternative for easy deployment and integration with Vercel projects.
-- Deploy via Vercel CLI or GitHub integration.
-- Use environment variables for MQTT broker credentials.
+### Docker
+- Build the Docker image using the provided `Dockerfile` and run it on your platform of choice.
+
+### Kubernetes
+- Deploy as a `Deployment`/`Service` pair and point it at your MQTT broker (managed or self-hosted).
+
+### Managed app platforms
+- Works well on long-running container platforms like Fly.io, Railway, Render, DigitalOcean Apps, or a simple VM.
+
+### DigitalOcean Deployment
+- Recommended to run on a small Droplet (e.g., 1GB RAM). Open ports 80/443 (Caddy) and 1883 (raw MQTT). Use the compose stack as-is.
+
+### Note on serverless platforms
+- Traditional serverless/FaaS (e.g., Cloudflare Workers, Vercel Serverless Functions) are generally not suitable for MQTT publishing because they are short-lived and do not allow persistent TCP connections. This project targets standard Node.js/container environments.
 
 ## Example Workflow
 
@@ -82,9 +92,9 @@ Beeper-Service is designed for modern serverless/cloud platforms:
 
 ## Development
 
-- Written in TypeScript/JavaScript (Node.js runtime for Vercel, Service Worker API for Cloudflare).
-- Uses a lightweight MQTT client (e.g., `mqtt.js`).
-- Minimal dependencies for fast cold starts.
+- Written in TypeScript/JavaScript (Node.js runtime).
+- Uses a lightweight MQTT client (`mqtt.js`).
+- Minimal dependencies.
 
 ## License
 

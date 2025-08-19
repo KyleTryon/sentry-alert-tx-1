@@ -1,6 +1,5 @@
 import Fastify, { FastifyInstance, FastifyRequest, FastifyReply } from 'fastify';
 import { getConfig, type Config } from './config/environment.js';
-import { logger } from './utils/logger.js';
 import { verifySignature, validateTimestamp } from './utils/signature.js';
 import { MQTTService } from './services/mqtt.js';
 import { 
@@ -26,7 +25,7 @@ export class BeeperServer {
     this.startTime = new Date();
     
     this.fastify = Fastify({
-      logger: false, // We use our custom logger
+      logger: false, // Console logging only
       bodyLimit: 1048576, // 1MB limit for webhook payloads
       trustProxy: true,
     });
@@ -54,13 +53,13 @@ export class BeeperServer {
         };
 
         const duration = Date.now() - startTime;
-        logger.request('GET', '/health', 200, duration);
+        console.log('HTTP Request', { method: 'GET', path: '/health', statusCode: 200, duration });
         
         return reply.code(200).send(health);
       } catch (error) {
         const duration = Date.now() - startTime;
-        logger.request('GET', '/health', 500, duration);
-        logger.error('Health check failed', {}, error as Error);
+        console.log('HTTP Request', { method: 'GET', path: '/health', statusCode: 500, duration });
+        console.error('Health check failed', error as Error);
         
         return reply.code(500).send({
           status: 'error',
@@ -79,7 +78,7 @@ export class BeeperServer {
         const headerValidation = this.validateWebhookHeaders(request.headers);
         if (!headerValidation.valid) {
           const duration = Date.now() - startTime;
-          logger.request('POST', '/webhook', 400, duration, { requestId, error: headerValidation.error });
+          console.log('HTTP Request', { method: 'POST', path: '/webhook', statusCode: 400, duration, requestId, error: headerValidation.error });
           
           return reply.code(400).send({
             error: 'Invalid headers',
@@ -94,8 +93,8 @@ export class BeeperServer {
           
           if (!verifySignature(rawBody, signature, this.config.SENTRY_WEBHOOK_SECRET)) {
             const duration = Date.now() - startTime;
-            logger.request('POST', '/webhook', 401, duration, { requestId });
-            logger.warn('Invalid webhook signature', { requestId });
+            console.log('HTTP Request', { method: 'POST', path: '/webhook', statusCode: 401, duration, requestId });
+            console.warn('Invalid webhook signature', { requestId });
             
             return reply.code(401).send({
               error: 'Unauthorized',
@@ -108,8 +107,8 @@ export class BeeperServer {
         const timestamp = request.headers['sentry-hook-timestamp'];
         if (!validateTimestamp(timestamp)) {
           const duration = Date.now() - startTime;
-          logger.request('POST', '/webhook', 400, duration, { requestId });
-          logger.warn('Invalid webhook timestamp', { requestId, timestamp });
+          console.log('HTTP Request', { method: 'POST', path: '/webhook', statusCode: 400, duration, requestId });
+          console.warn('Invalid webhook timestamp', { requestId, timestamp });
           
           return reply.code(400).send({
             error: 'Invalid timestamp',
@@ -121,8 +120,8 @@ export class BeeperServer {
         const payloadValidation = BaseWebhookPayloadSchema.safeParse(request.body);
         if (!payloadValidation.success) {
           const duration = Date.now() - startTime;
-          logger.request('POST', '/webhook', 400, duration, { requestId });
-          logger.warn('Invalid webhook payload', { 
+          console.log('HTTP Request', { method: 'POST', path: '/webhook', statusCode: 400, duration, requestId });
+          console.warn('Invalid webhook payload', { 
             requestId, 
             errors: payloadValidation.error.errors 
           });
@@ -138,7 +137,11 @@ export class BeeperServer {
         await this.processWebhook(request.body, requestId);
         
         const duration = Date.now() - startTime;
-        logger.request('POST', '/webhook', 200, duration, { 
+        console.log('HTTP Request', { 
+          method: 'POST',
+          path: '/webhook',
+          statusCode: 200,
+          duration,
           requestId,
           resource: request.headers['sentry-hook-resource'],
           action: request.body.action,
@@ -152,8 +155,8 @@ export class BeeperServer {
         
       } catch (error) {
         const duration = Date.now() - startTime;
-        logger.request('POST', '/webhook', 500, duration, { requestId });
-        logger.error('Error processing webhook', { requestId }, error as Error);
+        console.log('HTTP Request', { method: 'POST', path: '/webhook', statusCode: 500, duration, requestId });
+        console.error('Error processing webhook', { requestId }, error as Error);
         
         return reply.code(500).send({
           error: 'Internal server error',
@@ -196,7 +199,7 @@ export class BeeperServer {
   }
 
   private async processWebhook(payload: SentryWebhookPayload, requestId: string): Promise<void> {
-    logger.info('Processing webhook', {
+    console.log('Processing webhook', {
       requestId,
       action: payload.action,
       installationId: payload.installation.uuid,
@@ -206,19 +209,19 @@ export class BeeperServer {
       // Forward to MQTT
       await this.mqttService.publishAlert(payload);
       
-      logger.info('Webhook processed successfully', {
+      console.log('Webhook processed successfully', {
         requestId,
         action: payload.action,
       });
     } catch (error) {
-      logger.error('Failed to process webhook', { requestId }, error as Error);
+      console.error('Failed to process webhook', { requestId }, error as Error);
       throw error;
     }
   }
 
   private setupErrorHandlers(): void {
     this.fastify.setErrorHandler(async (error, request, reply) => {
-      logger.error('Fastify error handler', {
+      console.error('Fastify error handler', {
         url: request.url,
         method: request.method,
       }, error);
@@ -234,7 +237,7 @@ export class BeeperServer {
     });
 
     this.fastify.setNotFoundHandler(async (request, reply) => {
-      logger.warn('Route not found', {
+      console.warn('Route not found', {
         url: request.url,
         method: request.method,
       });
@@ -249,37 +252,37 @@ export class BeeperServer {
   async start(): Promise<void> {
     try {
       // Connect to MQTT first
-      logger.info('Connecting to MQTT broker...');
+      console.log('Connecting to MQTT broker...');
       await this.mqttService.connect();
       
       // Start HTTP server
-      logger.info('Starting HTTP server...');
+      console.log('Starting HTTP server...');
       await this.fastify.listen({ 
         port: this.config.PORT, 
         host: this.config.HOST 
       });
       
-      logger.info('Beeper Service started successfully', {
+      console.log('Beeper Service started successfully', {
         port: this.config.PORT,
         host: this.config.HOST,
         environment: this.config.NODE_ENV,
       });
       
     } catch (error) {
-      logger.error('Failed to start server', {}, error as Error);
+      console.error('Failed to start server', error as Error);
       throw error;
     }
   }
 
   async stop(): Promise<void> {
-    logger.info('Shutting down server...');
+    console.log('Shutting down server...');
     
     try {
       await this.mqttService.disconnect();
       await this.fastify.close();
-      logger.info('Server shutdown completed');
+      console.log('Server shutdown completed');
     } catch (error) {
-      logger.error('Error during shutdown', {}, error as Error);
+      console.error('Error during shutdown', error as Error);
       throw error;
     }
   }
