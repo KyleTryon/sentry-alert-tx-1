@@ -10,6 +10,7 @@
   - ScreenManager: stack-based navigation between screens.
   - Theme: centralized colors and styles; changeable at runtime.
   - DisplayConfig and DisplayUtils: single source of truth and helpers for sizing, text, and layout.
+  - Ringtones: selectable in Settings, preview on select, and persisted in NVS.
 
 ## Source layout
 
@@ -76,24 +77,6 @@ MyScreen* my = new MyScreen(&tft);
 screenManager->pushScreen(my);
 ```
 
-## Tips for contributors
-
-- Use DisplayConfig constants rather than hardcoded dimensions.
-- Prefer DisplayUtils for text/layout helpers.
-- Keep components small, with clear bounds and markDirty() updates.
-- Favor fixed-size arrays for predictable memory where practical.
-
-### Screen ownership and lifecycle
-
-- By default, screens are reused (caller owns them). If you want an "app"-like screen to be freed when leaving, transfer ownership to the screen manager when navigating:
-
-```cpp
-// Ephemeral screen: manager owns and deletes on back
-screenManager->pushScreen(new MyEphemeralScreen(display), true);
-```
-
-- Use this for disposable game/app screens so state resets on every launch.
-
 ## Game framework (new)
 
 - GameScreen (core): base class for games providing:
@@ -109,6 +92,12 @@ screenManager->pushScreen(new MyEphemeralScreen(display), true);
 - `Screen::cleanup()` is called from `Screen::exit()`.
 - Use this to stop audio, free resources, and reset pointers.
 - `ScreenManager::clearStack()` now deletes owned screens (and calls `exit()`), preventing leaks.
+
+## Alerts (new)
+
+- AlertsScreen: message list with read/unread indicators and 16px icons.
+- New messages arrive via MQTT (JSON payload) and trigger the selected ringtone.
+- Ringtone selection is managed in Settings and persisted via `SettingsManager`.
 
 ## See also
 

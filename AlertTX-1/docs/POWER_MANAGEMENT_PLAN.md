@@ -7,6 +7,11 @@
 - Settings to configure timeouts and a "Sleep now / Power off" option
 - Skip splash on deep-sleep wake; preserve UX consistency
 
+## Status Summary (Delta)
+- MQTT client is now non-blocking and safe if offline. It retries opportunistically without blocking the UI or boot.
+- Alerts flow is compatible with deep-sleep strategy. Background periodic wakes can reuse non-blocking MQTT to check for new messages.
+- Ringtone should be triggered on a foreground wake when new messages are presented to the user (see Wake Behavior and Ringtone below).
+
 ## Hardware References
 - **Pinout**: `docs/pinout-reference.md` - Battery Monitor MAX17048 (I2C 0x36), VBAT, wake sources, TFT_BACKLITE (GPIO45)
 - **Hardware Setup**: `docs/hardware-setup.md` - Display power, pin assignments, LiPo 400mAh specs
@@ -16,7 +21,7 @@ Introduce `PowerManager` to orchestrate power states. Integrate with `InputRoute
 
 ### New Module: `src/power/PowerManager.{h,cpp}`
 **Responsibilities:**
-- `begin()`: Initialize MAX17048, backlight control (GPIO45), wake sources
+- `begin()`: Initialize MAX17048, display power domain (TFT power GPIO), wake sources
 - `onWake()`: Run at boot to handle splash skip and state carryover
 - `update(nowMs)`: State machine transitions: Active → IdleDim → DeepSleepCycle
 - `requestSleepNow()` / `requestPowerOff()`: Invoked from Settings to enter deep sleep
@@ -29,20 +34,20 @@ Introduce `PowerManager` to orchestrate power states. Integrate with `InputRoute
   - If `now - lastActivityMs >= inactivityTimeoutMs` → IdleDim (dim/off backlight)
   - If additionally `>= inactivityTimeoutMs + dimGraceMs` → DeepSleepCycle
 - **IdleDim**
-  - Backlight off: `digitalWrite(TFT_BACKLITE, LOW)`
-  - Any input → restore backlight, return to Active
+  - Display panel off: `PowerManager` must disable backlight AND avoid any GFX draws
+  - Any input → restore panel power/backlight, return to Active
   - If grace period exceeded → DeepSleepCycle
 - **DeepSleepCycle**
   - Configure timer wake: `esp_sleep_enable_timer_wakeup(sleepIntervalMs * 1000ULL)`
   - Configure button wake: ext0 (Button A, LOW) + ext1 (Button B/C, ANY_HIGH)
   - Enter `esp_deep_sleep_start()`
-  - **On wake**: skip splash, reconnect Wi‑Fi, check MQTT for new messages
-    - If new messages: navigate to Messages screen (future)
-    - Else: re-enter DeepSleepCycle
+  - **Strict display-off rule**: During background wake checks, do not touch the display (no Adafruit_GFX calls, keep panel/backlight power off) unless we are transitioning to foreground due to a new alert
 
-**Backlight Control:**
-- Off mode: `digitalWrite(TFT_BACKLITE, LOW)` (immediate power savings)
-- Future: PWM dimming with configurable levels
+**Display/Panel Power Control:**
+- Do not only turn the backlight off — ensure the entire panel is quiescent during sleep/background checks:
+  - Backlight off: `digitalWrite(TFT_BACKLITE, LOW)`
+  - Optionally disable TFT/IO power rail if available (e.g., `TFT_I2C_POWER`), but only after the panel is in a safe state
+  - Absolutely avoid any GFX calls while sleeping/background wake to prevent re-enabling the bus implicitly
 
 ### Input Router Integration – `src/ui/core/InputRouter.h`
 - Already centralizes all input handling
@@ -158,23 +163,22 @@ void setup() {
     if (skipSplash) {
         Serial.println("Wake from deep sleep detected - skipping splash");
         
-        // Check if we have new messages/alerts (future feature)
+        // Check if we have new messages/alerts using non-blocking MQTT
         bool hasNewMessages = PowerManager::hasNewMessagesOnWake();
         
         if (hasNewMessages) {
-            // Navigate directly to Messages/Alerts screen
-            Serial.println("New messages detected - going to Messages screen");
-            // messagesScreen = new MessagesScreen(&tft);  // Future
-            // screenManager->pushScreen(messagesScreen);
-            screenManager->pushScreen(mainMenuScreen);  // Fallback for now
+            // IMPORTANT: Only now initialize/restore display power and draw
+            PowerManager::enableDisplayPanel();
+            // Navigate directly to Alerts screen (or Messages screen when implemented)
+            screenManager->pushScreen(alertsScreen /* or messagesScreen */);
+            // Trigger ringtone on foreground wake
+            ringtonePlayer.playRingtoneByIndex(SettingsManager::getRingtoneIndex());
         } else {
-            // Normal wake - go straight to main menu
-            Serial.println("No new messages - going to Main Menu");
+            // Normal wake - go straight to main menu without touching the display during background checks
             screenManager->pushScreen(mainMenuScreen);
         }
     } else {
         // Normal cold boot - show splash screen
-        Serial.println("Cold boot detected - showing splash screen");
         screenManager->pushScreen(splashScreen);
     }
 }
@@ -189,117 +193,56 @@ bool PowerManager::onWake() {
     
     switch (wakeup_reason) {
         case ESP_SLEEP_WAKEUP_TIMER:
-            Serial.println("Wake: Timer (periodic MQTT check)");
+            // Background check path: do NOT initialize the display, keep panel/backlight OFF
             lastWakeWasFromSleep = true;
-            handlePeriodicWakeBackground();  // Check messages, SCREEN STAYS OFF
-            return true;  // Skip splash (if new messages found)
+            handlePeriodicWakeBackground();  // Non-blocking MQTT check, screen stays off
+            return true;  // Skip splash (if new messages found) but allow logic above to decide
             
-        case ESP_SLEEP_WAKEUP_EXT0:
-            Serial.println("Wake: Button A pressed");
-            lastWakeWasFromSleep = true;
-            return true;  // Skip splash - user wants immediate access
-            
-        case ESP_SLEEP_WAKEUP_EXT1:
-            Serial.println("Wake: Button B or C pressed");
+        case ESP_SLEEP_WAKEUP_EXT0: // Button A
+        case ESP_SLEEP_WAKEUP_EXT1: // Button B/C
             lastWakeWasFromSleep = true;
             return true;  // Skip splash - user wants immediate access
             
         case ESP_SLEEP_WAKEUP_UNDEFINED:
         default:
-            Serial.println("Wake: Cold boot (power on/reset)");
             lastWakeWasFromSleep = false;
             return false;  // Show splash - first boot experience
     }
 }
 ```
 
+### Wake Behavior and Ringtone
+- During timer-based background wake: keep display completely off (no power, no draws). Use non-blocking MQTT to check for new alerts. If none, go back to deep sleep immediately.
+- If new alerts are found: transition to foreground wake by enabling the display panel and backlight, navigate to the Alerts view, and immediately trigger the ringtone using the user-selected index. LED sync will blink with notes when active.
+
 ### User Experience Impact
+- **Cold Boot**: Shows splash for 2s (branding). 
+- **Wake from Deep Sleep**: Immediate functionality; splash skipped.
+- **Timer Wake (Background)**: Invisible when no new alerts; foreground wake + ringtone when there is something to show.
 
-**Cold Boot (Power On/Reset):**
-- Shows "SENTRY" branding splash for 2 seconds
-- Professional, polished first impression
-- Time to mentally context-switch to "beeper mode"
-
-**Wake from Deep Sleep:**
-- **Immediate functionality** - no delay, no branding
-- Responsive feel - press button, get menu instantly
-- Preserves "always-on" device illusion
-- Important for emergency/urgent alert scenarios
-
-**Timer Wake (Background):**
-- Device wakes every 60s to check for messages
-- **Screen stays OFF** during background wake (backlight remains LOW)
-- If no new messages: immediately return to deep sleep (user completely unaware)
-- If new messages: turn screen ON, navigate to Messages screen (future)
-- User experience: device "magically" wakes when there's something important
-
-### Technical Implementation Details
+## Technical Implementation Details
 
 **Splash Screen Lifecycle Impact:**
-- SplashScreen constructor and enter() logic remains unchanged
-- Only the initial screen selection in `setup()` changes
-- SplashScreen can still be manually accessed later if needed
+- SplashScreen constructor/enter unchanged; only initial selection differs.
 
 **Memory Efficiency:**
-- On sleep wake, SplashScreen object may not be created at all
-- Saves ~1KB of RAM and faster boot time
-- More important when waking frequently (every 60s)
+- On sleep wake, SplashScreen may not be created; saves RAM and time.
 
 **State Preservation:**
-- Deep sleep loses all RAM contents
-- Settings/preferences preserved in NVS
-- Theme selection stored in NVS via SettingsManager (see THEME_SELECTION_SYSTEM.md)
-- WiFi credentials injected at build-time via generated_secrets.h
-- Fresh app state each wake (like closing/reopening apps)
+- Deep sleep clears RAM; settings persist in NVS. Theme and ringtone index are persisted.
 
-### Future Message Handling
-When MQTT message functionality is implemented:
-
+### Future Message Handling – Background Check (Non-Blocking)
 ```cpp
 void PowerManager::handlePeriodicWakeBackground() {
-    // CRITICAL: Keep screen OFF during background wake
-    // Do NOT call setBacklight(true) here
-    
-    // Reconnect WiFi if needed (no visual feedback)
-    if (!WiFi.isConnected()) {
-        WiFi.begin(/* credentials from generated_secrets.h */);
-        // Wait for connection with timeout (5-10 seconds max)
-    }
-    
-    // Check MQTT for new messages since last wake
-    bool hasNewMessages = MQTTClient::hasUnreadMessages();
-    
-    if (hasNewMessages) {
-        // Turn screen ON only if new messages found
-        setBacklight(true);
-        hasNewMessagesOnWake = true;
-        // setup() will navigate to Messages screen
-    } else {
-        // No new messages - go back to sleep immediately
-        // Screen never turned on, user unaware of wake
+    // Screen OFF during background wake
+    // Reconnect WiFi if needed (non-blocking) and pump MQTT client update()
+    // Example: use existing non-blocking MQTTClient::update() loops
+    bool hasNewMessages = MQTTClient::peekForNewMessagesNonBlocking(); // pseudo
+    if (!hasNewMessages) {
         enterDeepSleep();
+        return;
     }
-}
-```
-
-This creates a smart wake behavior:
-- **Button wake**: Straight to main menu (user-initiated)
-- **Timer wake + new messages**: Straight to Messages screen (urgent)
-- **Timer wake + no messages**: Return to deep sleep (invisible to user)
-- **Cold boot**: Show splash (branding/professional experience)
-
-**Wake Source Configuration:**
-```cpp
-void configureSleepWakeSources() {
-    // Button A: GPIO0, pulled HIGH, goes LOW when pressed
-    esp_sleep_enable_ext0_wakeup(GPIO_NUM_0, 0); // Wake on LOW
-    
-    // Buttons B/C: GPIO1/2, pulled LOW, go HIGH when pressed  
-    uint64_t ext1_mask = (1ULL << GPIO_NUM_1) | (1ULL << GPIO_NUM_2);
-    esp_sleep_enable_ext1_wakeup(ext1_mask, ESP_EXT1_WAKEUP_ANY_HIGH);
-    
-    // Timer wake for periodic MQTT checks
-    esp_sleep_enable_timer_wakeup(deepSleepIntervalMs * 1000ULL);
+    // Messages exist: foreground wake will init display, navigate, and play ringtone
 }
 ```
 
@@ -314,14 +257,9 @@ void configureSleepWakeSources() {
 
 class PowerManager {
 public:
-    enum PowerState {
-        ACTIVE,
-        IDLE_DIM,
-        DEEP_SLEEP_CYCLE
-    };
-    
+    enum PowerState { ACTIVE, IDLE_DIM, DEEP_SLEEP_CYCLE };
     static void begin();
-    static void onWake();
+    static bool onWake();
     static void update(unsigned long nowMs);
     static void notifyActivity();
     static void requestSleepNow();
@@ -329,19 +267,16 @@ public:
     static float getBatteryVoltage();
     static int getBatteryPercent();
     static PowerState getCurrentState();
-    
+
+    // Display/power helpers
+    static void enableDisplayPanel();
+    static void disableDisplayPanel();
+    static bool hasNewMessagesOnWake();
+
 private:
     static PowerState currentState;
     static unsigned long lastActivityMs;
-
-    static float batteryVoltage;
-    static int batteryPercent;
-    
-    static void initMAX17048();
-    static void updateBattery();
-    static void setBacklight(bool enabled);
     static void enterDeepSleep();
-    static void configureSleepWakeSources();
 };
 ```
 
@@ -352,116 +287,81 @@ private:
 
 void setup() {
     // ... existing setup ...
-    
     PowerManager::begin();
-    PowerManager::onWake();  // Handle wake logic before splash
-    
-    // ... rest of setup ...
+    bool skipSplash = PowerManager::onWake();
+    // select initial screen per logic above
 }
 
 void loop() {
     inputRouter->update();
-    PowerManager::update(millis());  // Add power management
+    PowerManager::update(millis());
     screenManager->update();
     screenManager->draw();
-    
-    // ... existing loop ...
 }
 ```
 
 **InputRouter.h integration:**
 ```cpp
 // In InputRouter::update()
-void InputRouter::update() {
-    // ... existing button handling ...
-    
-    // Notify power manager of any activity
-    if (buttons->wasPressed(ButtonManager::BUTTON_A) ||
-        buttons->wasPressed(ButtonManager::BUTTON_B) ||
-        buttons->wasPressed(ButtonManager::BUTTON_C) ||
-        buttons->wasReleased(ButtonManager::BUTTON_A) ||
-        buttons->wasReleased(ButtonManager::BUTTON_B) ||
-        buttons->wasReleased(ButtonManager::BUTTON_C)) {
-        PowerManager::notifyActivity();
-    }
-    
-    // ... rest of existing logic ...
+if (buttons->wasPressed(...) || buttons->wasReleased(...)) {
+    PowerManager::notifyActivity();
 }
 ```
 
 ### 3. Update SystemInfoScreen
-**Replace battery placeholder in `src/ui/screens/SystemInfoScreen.cpp`:**
-```cpp
-#include "../../power/PowerManager.h"
-
-void SystemInfoScreen::refreshMetrics() {
-    // Replace placeholder with PowerManager calls
-    batteryVoltage = PowerManager::getBatteryVoltage();
-    batteryPercent = PowerManager::getBatteryPercent();
-}
-
-// Remove local readBatteryVoltage() and estimateBatteryPercent() methods
-```
+Use `PowerManager` for battery readings.
 
 ### 4. Settings Configuration
-**SettingsManager.h additions:**
-```cpp
-// Add to SettingsManager class
-static uint32_t getInactivityTimeoutMs();
-static void setInactivityTimeoutMs(uint32_t timeoutMs);
-static uint32_t getDimGraceMs();
-static void setDimGraceMs(uint32_t graceMs);
-static uint32_t getDeepSleepIntervalMs();
-static void setDeepSleepIntervalMs(uint32_t intervalMs);
-```
-
-**SettingsScreen.cpp additions:**
-```cpp
-// Add "Power" menu item in constructor
-menuContainer->addMenuItem(new MenuItem("Power", [this]() { onPowerSelected(); }));
-
-void SettingsScreen::onPowerSelected() {
-    // Navigate to PowerSettingsScreen (new screen)
-}
-```
+Add setters/getters for timeouts.
 
 ### 5. MQTT Integration Placeholder
-**In PowerManager wake cycle:**
-```cpp
-void PowerManager::handlePeriodicWake() {
-    // TODO: Reconnect WiFi if disconnected
-    // WiFi.begin(ssid, password);
-    
-    // TODO: Connect to MQTT and check for new messages
-    // MQTTClient::checkForNewMessages();
-    
-    // Placeholder: assume no new messages for now
-    bool hasNewMessages = false;
-    
-    if (hasNewMessages) {
-        // TODO: Navigate to Messages screen when implemented
-        // ScreenManager::switchToScreen(new MessagesScreen());
-    } else {
-        // Go back to deep sleep
-        enterDeepSleep();
-    }
-}
-```
-
-## Hardware Implementation Notes
-
-**From pinout-reference.md:**
-- **Button A (GPIO0)**: Pulled HIGH, goes LOW when pressed → `esp_sleep_enable_ext0_wakeup(GPIO_NUM_0, 0)`
-- **Button B (GPIO1)**: Pulled LOW, goes HIGH when pressed → ext1 wake ANY_HIGH
-- **Button C (GPIO2)**: Pulled LOW, goes HIGH when pressed → ext1 wake ANY_HIGH  
-- **TFT Backlight (GPIO45)**: `digitalWrite(TFT_BACKLITE, LOW/HIGH)` for power control
-- **MAX17048**: I2C address 0x36, SDA=GPIO3, SCL=GPIO4 (built into board)
-
-**Power Consumption Targets:**
-- Active: ~50-200mA (WiFi on, display on)
-- IdleDim: ~30-100mA (WiFi on, display off)
-- DeepSleep: <1mA (only RTC and wake circuits active)
+Use the existing non-blocking MQTT client to check messages in background wakes safely with the display OFF.
 
 ---
 
-This plan leverages the MAX17048 fuel gauge for accurate battery monitoring, implements a robust power state machine with user-configurable timeouts, and integrates cleanly with the existing UI framework while minimizing code changes to other modules.
+This update clarifies: (1) MQTT is non-blocking and compatible with sleep/wake. (2) The display must remain completely untouched during sleep/background wake (not just backlight off). (3) When new messages are detected on a periodic wake, the device should fully wake the UI and play the selected ringtone as part of the foreground transition.
+
+## Refinements and Safeguards (Required)
+
+### Display Gating and ScreenManager
+- Add `PowerManager::isDisplayEnabled()`.
+- Add `PowerManager::enableDisplayPanel()` and `disableDisplayPanel()` as the only API to change panel state.
+- Modify `ScreenManager::draw()` to early-return if `!PowerManager::isDisplayEnabled()` so no Adafruit_GFX calls occur while the panel is off.
+- Call `disableDisplayPanel()` upon entering IdleDim and before DeepSleep; only call `enableDisplayPanel()` on foreground wake.
+
+### Alerts Ingestion and Ringtone Policy
+- Background (timer) ingestion MUST pass `playTone = false` to `AlertsScreen::addMessage(...)`.
+- On foreground wake due to new messages, after `enableDisplayPanel()`, navigate to alerts and call `ringtonePlayer.playRingtoneByIndex(SettingsManager::getRingtoneIndex())` exactly once.
+
+### RTC vs NVS for Wake Context
+- Use RTC memory for volatile flags (e.g., `lastWakeWasFromSleep`, `hasNewMessagesPending`).
+- Persist last-seen message id and MQTT session hints in NVS to quickly determine “new content” on wake without rendering.
+- Background wake flow: compare retained/last-seen id → set `hasNewMessagesPending` (RTC) if newer → go foreground path; else return to sleep.
+
+### Wake Initialization: Audio and Timing
+- On foreground wake, reinitialize audio timing sources to avoid drift after `millis()` reset:
+  - Ensure `ringtonePlayer.begin(BUZZER_PIN)` has been called since boot.
+  - Ensure LED state is reset (`statusLed.off()`).
+  - Trigger ringtone only in foreground after display is enabled.
+
+### Boot Director and Screen Lifecycle
+- Introduce a lightweight "boot director" in `setup()` that:
+  - Computes initial screen per wake cause and background checks.
+  - Ensures any required screens (e.g., `AlertsScreen`) are constructed before `pushScreen(...)` (do not rely on `MainMenuScreen::initializeScreens()` in skip‑splash path).
+  - Defers pushing any screen until after enabling the panel on foreground wake.
+
+### Sleep Entry Checklist (Race-Free)
+Before calling `esp_deep_sleep_start()`:
+- Stop/pause audio: `ringtonePlayer.stop()`.
+- Ensure `statusLed.off()`.
+- Ensure MQTT client is not in the middle of a publish; if needed, skip/flush.
+- Disable display panel: `PowerManager::disableDisplayPanel()` and avoid further draws.
+
+### Ring-Once UX on Wake
+- Aggregate multiple new messages during sleep; play ringtone once when entering foreground.
+- Consider a small visual badge (e.g., "3 new") and optional LED blink pattern instead of multiple consecutive ringtones.
+
+### Adaptive and Non-Blocking Connectivity (Recap)
+- If SSID/broker/clientId are empty → skip connect attempts.
+- Use non-blocking Wi‑Fi/MQTT update loops with backoff and strict attempt caps during background wake.
+- Consider QoS ≥ 1 or retained “last-message-id” pointer topic to improve reliability while sleeping.

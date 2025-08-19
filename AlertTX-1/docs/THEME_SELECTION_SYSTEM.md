@@ -4,6 +4,8 @@
 
 The Alert TX-1 now features a comprehensive theme selection system with real-time preview and persistent storage. Users can navigate to a dedicated theme selection screen, preview themes instantly by navigating through the list, and save their preferred theme permanently.
 
+Note: Ringtone selection in `Settings` now follows the same persistence pattern using `SettingsManager::setRingtoneIndex()` / `getRingtoneIndex()` and previews the selected ringtone on change.
+
 ## 🎨 Features
 
 ### Core Functionality

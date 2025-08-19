@@ -9,12 +9,15 @@
 
 // Default constructor for simple usage
 MQTTClient::MQTTClient() : _client(_espClient) {
-  // Set a default null callback for simple usage
   _client.setCallback(nullptr);
+  _ssid = _password = _mqttBroker = _clientId = nullptr;
+  _mqttPort = 0;
 }
 
 MQTTClient::MQTTClient(void (*callback)(char*, uint8_t*, unsigned int)) : _client(_espClient) {
   _client.setCallback(callback);
+  _ssid = _password = _mqttBroker = _clientId = nullptr;
+  _mqttPort = 0;
 }
 
 void MQTTClient::begin(const char* ssid, const char* password, const char* mqttBroker, int mqttPort, const char* clientId) {
@@ -24,16 +27,11 @@ void MQTTClient::begin(const char* ssid, const char* password, const char* mqttB
   _mqttPort = mqttPort;
   _clientId = clientId;
 
-  Serial.print("Connecting to WiFi: ");
-  Serial.println(_ssid);
-  WiFi.begin(_ssid, _password);
-  while (WiFi.status() != WL_CONNECTED) {
-    delay(500);
-    Serial.print(".");
-  }
-  Serial.println("WiFi connected");
-  Serial.print("IP address: ");
-  Serial.println(WiFi.localIP());
+  // Lazy, non-blocking connect
+  _wifiStarted = false;
+  _lastWifiCheckMs = 0;
+  _mqttTriedOnce = false;
+  _lastMqttAttemptMs = 0;
 
   _client.setServer(_mqttBroker, _mqttPort);
 }
@@ -42,7 +40,7 @@ void MQTTClient::begin(const char* ssid, const char* password, const char* mqttB
 void MQTTClient::begin() {
   const char* ssid = "";
   const char* password = "";
-  const char* broker = "localhost";
+  const char* broker = "";
   int port = 1883;
   const char* clientId = "AlertTX1";
 
@@ -65,19 +63,66 @@ void MQTTClient::begin() {
   begin(ssid, password, broker, port, clientId);
 }
 
-void MQTTClient::loop() {
-  if (!_client.connected()) {
-    reconnect();
+bool MQTTClient::hasWifiCreds() const {
+  return _ssid && _password && _ssid[0] != '\0';
+}
+
+bool MQTTClient::hasMqttConfig() const {
+  return _mqttBroker && _mqttBroker[0] != '\0' && _mqttPort > 0 && _clientId && _clientId[0] != '\0';
+}
+
+void MQTTClient::tryWifiConnect() {
+  if (_wifiStarted || !hasWifiCreds()) return;
+  WiFi.mode(WIFI_STA);
+  WiFi.begin(_ssid, _password);
+  _wifiStarted = true;
+}
+
+void MQTTClient::tryMqttConnect() {
+  if (!hasMqttConfig()) return;
+  if (WiFi.status() != WL_CONNECTED) return;
+  if (_client.connected()) return;
+  unsigned long now = millis();
+  if (_mqttTriedOnce && (now - _lastMqttAttemptMs) < _mqttRetryDelayMs) return;
+  _lastMqttAttemptMs = now;
+  _mqttTriedOnce = true;
+  if (_client.connect(_clientId)) {
+    if (_lastSubscribeTopic) {
+      _client.subscribe(_lastSubscribeTopic);
+    }
   }
-  _client.loop();
+}
+
+void MQTTClient::loop() {
+  // Non-blocking: attempt wifi/mqtt progressively
+  unsigned long now = millis();
+  if ((_lastWifiCheckMs == 0 || now - _lastWifiCheckMs > 1000)) {
+    _lastWifiCheckMs = now;
+    if (hasWifiCreds() && WiFi.status() != WL_CONNECTED) {
+      if (!_wifiStarted) tryWifiConnect();
+      // no blocking wait
+    }
+  }
+
+  if (hasMqttConfig()) {
+    tryMqttConnect();
+  }
+
+  if (_client.connected()) {
+    _client.loop();
+  }
 }
 
 bool MQTTClient::publish(const char* topic, const char* payload) {
+  if (!_client.connected()) return false;
   return _client.publish(topic, payload);
 }
 
 void MQTTClient::subscribe(const char* topic) {
-  _client.subscribe(topic);
+  _lastSubscribeTopic = topic;
+  if (_client.connected()) {
+    _client.subscribe(topic);
+  }
 }
 
 // Alias for loop() for consistency with other managers
@@ -86,16 +131,6 @@ void MQTTClient::update() {
 }
 
 void MQTTClient::reconnect() {
-  while (!_client.connected()) {
-    Serial.print("Attempting MQTT connection...");
-    if (_client.connect(_clientId)) {
-      Serial.println("connected");
-      // Resubscribe here if needed
-    } else {
-      Serial.print("failed, rc=");
-      Serial.print(_client.state());
-      Serial.println(" try again in 5 seconds");
-      delay(5000);
-    }
-  }
+  // Retained for compatibility, now just a non-blocking attempt
+  tryMqttConnect();
 }

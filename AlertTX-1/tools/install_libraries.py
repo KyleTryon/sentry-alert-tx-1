@@ -32,7 +32,8 @@ def install_libraries():
         ("Adafruit ST7735 and ST7789 Library", "Adafruit ST7735 and ST7789 Library"),
         ("Adafruit BusIO", "Adafruit BusIO"),
         ("AnyRtttl", "AnyRtttl"),
-        ("PubSubClient", "PubSubClient")
+        ("PubSubClient", "PubSubClient"),
+        ("ArduinoJson", "ArduinoJson")
     ]
     
     print("📚 Installing Alert TX-1 Arduino Libraries")
@@ -68,7 +69,8 @@ def check_libraries():
             "adafruit st7735 and st7789 library",
             "adafruit busio",
             "anyrtttl",
-            "pubsubclient"
+            "pubsubclient",
+            "arduinojson"
         ]
         
         print("\n📋 Library Status:")

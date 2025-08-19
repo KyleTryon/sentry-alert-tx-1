@@ -25,12 +25,9 @@ void LED::blink(unsigned long durationMs) {
   on(); // Start blink by turning on
 }
 
-// Call this in your main loop to handle blinking
-/*
-void LED::loop() {
+void LED::update() {
   if (_isBlinking && (millis() - _blinkStartTime >= _blinkDuration)) {
     off();
     _isBlinking = false;
   }
 }
-*/

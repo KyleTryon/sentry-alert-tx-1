@@ -10,6 +10,7 @@ public:
   void on();
   void off();
   void blink(unsigned long durationMs);
+  void update(); // call repeatedly to service blink
 private:
   int _pin;
   unsigned long _blinkStartTime;

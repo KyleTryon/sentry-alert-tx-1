@@ -21,6 +21,19 @@ private:
   const char* _mqttBroker;
   int _mqttPort;
   const char* _clientId;
-  void reconnect();
+  const char* _lastSubscribeTopic = nullptr;
+
+  // Non-blocking connection state
+  bool _wifiStarted = false;
+  unsigned long _lastWifiCheckMs = 0;
+  bool _mqttTriedOnce = false;
+  unsigned long _lastMqttAttemptMs = 0;
+  unsigned long _mqttRetryDelayMs = 3000; // 3s backoff
+
+  void reconnect(); // retained for compatibility (now non-blocking attempt)
+  void tryWifiConnect();
+  void tryMqttConnect();
+  bool hasWifiCreds() const;
+  bool hasMqttConfig() const;
 };
 #endif // MQTTCLIENT_H

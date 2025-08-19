@@ -14,6 +14,7 @@
 #include <Adafruit_GFX.h>    // Core graphics library
 #include <Adafruit_ST7789.h> // Hardware-specific library for ST7789
 #include <SPI.h>
+#include <ArduinoJson.h>
 
 // Phase 2 Component-Based UI Framework  
 #include "src/config/DisplayConfig.h"
@@ -27,8 +28,12 @@
 #include "src/ui/components/MenuContainer.h"
 #include "src/ui/screens/MainMenuScreen.h"
 #include "src/ui/screens/SplashScreen.h"
+#include "src/ui/screens/AlertsScreen.h"
 #include "src/hardware/ButtonManager.h"
+#include "src/hardware/LED.h"
 #include "src/ui/core/InputRouter.h"
+#include "src/ringtones/RingtonePlayer.h"
+#include "src/mqtt/MQTTClient.h"
 
 // Use dedicated hardware SPI pins
 Adafruit_ST7789 tft = Adafruit_ST7789(TFT_CS, TFT_DC, TFT_RST);
@@ -39,6 +44,46 @@ MainMenuScreen* mainMenuScreen;
 SplashScreen* splashScreen;
 ButtonManager buttonManager;
 InputRouter* inputRouter;
+LED statusLed;
+
+static void onMqttMessage(char* topic, uint8_t* payload, unsigned int length) {
+  // Copy payload to null-terminated buffer
+  static char buffer[512];
+  unsigned int copyLen = (length < sizeof(buffer) - 1) ? length : (sizeof(buffer) - 1);
+  memcpy(buffer, payload, copyLen);
+  buffer[copyLen] = '\0';
+
+  // Parse minimal JSON fields
+  StaticJsonDocument<512> doc;
+  DeserializationError err = deserializeJson(doc, buffer);
+  if (err) {
+    Serial.printf("MQTT JSON parse error: %s\n", err.c_str());
+    return;
+  }
+
+  const char* title = doc["data"]["title"] | "Alert";
+  const char* message = doc["data"]["message"] | "";
+  const char* ts = doc["timestamp"] | "";
+
+  // Derive short time (HH:MM) if timestamp present
+  char timeBuf[6] = {0};
+  if (ts && strlen(ts) >= 16) {
+    // Expecting ISO: YYYY-MM-DDTHH:MM:SSZ
+    timeBuf[0] = ts[11];
+    timeBuf[1] = ts[12];
+    timeBuf[2] = ':';
+    timeBuf[3] = ts[14];
+    timeBuf[4] = ts[15];
+    timeBuf[5] = '\0';
+  }
+
+  AlertsScreen* alerts = AlertsScreen::getInstance();
+  if (alerts) {
+    alerts->addMessage(title, message, (timeBuf[0] ? timeBuf : ts));
+  }
+}
+
+MQTTClient mqtt(onMqttMessage);
 
 void setup(void) {
   Serial.begin(115200);
@@ -78,19 +123,42 @@ void setup(void) {
   Serial.println("7. Initializing button manager...");
   buttonManager.begin();
 
+  // Initialize external status LED
+  statusLed.begin(LED_PIN);
+
+  // Initialize ringtone player and attach LED sync
+  Serial.println("8. Initializing ringtone player...");
+  ringtonePlayer.begin(BUZZER_PIN);
+  ringtonePlayer.attachLed(&statusLed);
+  ringtonePlayer.setLedSyncEnabled(true);
+
+  // Initialize MQTT
+  Serial.println("9. Initializing MQTT...");
+  String ssid = SettingsManager::getWifiSsid();
+  String pass = SettingsManager::getWifiPassword();
+  String broker = SettingsManager::getMqttBroker();
+  int port = SettingsManager::getMqttPort();
+  String cid = SettingsManager::getMqttClientId();
+  mqtt.begin(ssid.c_str(), pass.c_str(), broker.c_str(), port, cid.c_str());
+  String sub = SettingsManager::getMqttSubscribeTopic();
+  if (sub.length() > 0) {
+    mqtt.subscribe(sub.c_str());
+    Serial.printf("Subscribed to MQTT topic: %s\n", sub.c_str());
+  }
+
   // STEP 7: Initialize Phase 2 Component Framework
-  Serial.println("8. Initializing component framework...");
+  Serial.println("10. Initializing component framework...");
   screenManager = new ScreenManager(&tft);
   mainMenuScreen = new MainMenuScreen(&tft);
   splashScreen = new SplashScreen(&tft, mainMenuScreen);
   
   // STEP 8: Set up global screen manager access
-  Serial.println("9. Setting up global screen manager...");
+  Serial.println("11. Setting up global screen manager...");
   GlobalScreenManager::setInstance(screenManager);
   inputRouter = new InputRouter(screenManager, &buttonManager);
   
   // STEP 9: Start with splash screen
-  Serial.println("10. Starting with splash screen...");
+  Serial.println("12. Starting with splash screen...");
   screenManager->pushScreen(splashScreen);
   
   Serial.println("=== Phase 2 Component Framework Ready! ===");
@@ -102,13 +170,17 @@ void loop() {
   // Route input centrally
   inputRouter->update();
   
-  // Update and draw the Phase 2 component framework
+  // Update framework
   screenManager->update();
   screenManager->draw();
+
+  // Update audio and MQTT
+  ringtonePlayer.update();
+  mqtt.update();
+  statusLed.update();
   
-  // Debug: Performance monitoring (reduced frequency during splash)
   static unsigned long lastDebug = 0;
-  if (millis() - lastDebug > 30000) {  // Every 30 seconds (reduced from 10)
+  if (millis() - lastDebug > 30000) {
     Serial.println("=== Performance Stats ===");
     screenManager->printPerformanceStats();
     screenManager->printStackState();

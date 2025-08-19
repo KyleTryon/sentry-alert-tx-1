@@ -30,6 +30,7 @@ private:
     // NVS Configuration (must be under 15 characters)
     static const char* NAMESPACE;    // "alerttx1"
     static const char* THEME_KEY;    // "theme_idx"
+    static const char* RINGTONE_KEY; // "ring_idx"
     // Network/MQTT keys
     // (Network settings now build-time only; keys retained for future optional use)
     static const char* WIFI_SSID_KEY;       // "wifi_ssid"
@@ -82,6 +83,10 @@ public:
      * @return true if successfully saved, false if invalid index
      */
     static bool setThemeIndex(int index);
+
+    // Ringtone selection persistence
+    static int getRingtoneIndex();
+    static bool setRingtoneIndex(int index);
     
     /**
      * Check if settings have been initialized (any key exists)
