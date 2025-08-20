@@ -65,8 +65,6 @@ ufw allow 22/tcp
 ufw allow 80/tcp      # HTTP (Caddy)
 ufw allow 443/tcp     # HTTPS (Caddy)
 ufw allow 1883/tcp    # MQTT (raw TCP)
-# If running WITHOUT Caddy (HTTP-only Option A), also open the app port:
-# ufw allow 3000/tcp   # Beeper-Service HTTP (only if exposing directly)
 ufw status
 
 # Optional: Change SSH port and disable root login
@@ -98,6 +96,9 @@ NODE_ENV=production
 PORT=3000
 HOST=0.0.0.0
 
+# Domain used by Caddy (required for SSL)
+DOMAIN=your-domain.com
+
 # MQTT Configuration
 MQTT_BROKER_URL=mqtt://mosquitto:1883
 MQTT_USERNAME=beeper-service
@@ -110,8 +111,14 @@ MQTT_QOS=1
 SENTRY_WEBHOOK_SECRET=your-webhook-secret-from-sentry
 SENTRY_ALLOWED_IPS=
 
-
 ```
+
+> Notes on MQTT networking:
+> - The broker in this stack is the `mosquitto` service defined in `docker-compose.yml`.
+> - Inside Docker Compose, use `MQTT_BROKER_URL=mqtt://mosquitto:1883` (service name on the bridge network).
+> - Do NOT use `localhost` from within the beeper-service container for the broker.
+> - External devices (ESP32) should connect to the Docker host’s IP or DNS name on port `1883`.
+> - If using WebSockets via Caddy, ensure Mosquitto is listening on `9001` (websockets) and Caddy proxies `ws.<domain>` to `mosquitto:9001`.
 
 #### **5. Choose Deployment Mode**
 
@@ -163,14 +170,14 @@ http://your-droplet-ip:3000/webhook
 curl -X GET http://your-droplet-ip:3000/health
 ```
 
-**Production SSL deployment:**
+**Production SSL deployment (Caddy):**
 ```bash
 # Your webhook URLs will be:
-https://your-domain.com/webhook         # Main API
-wss://ws.your-domain.com/               # WebSocket MQTT
+https://$DOMAIN/webhook         # Main API
+wss://ws.$DOMAIN/               # WebSocket MQTT
 
 # Test the endpoints:
-curl -X GET https://your-domain.com/health
+curl -X GET https://$DOMAIN/health
 ```
 
 #### **8. Production Monitoring & Maintenance**
@@ -194,48 +201,38 @@ docker compose down
 docker compose up -d --build
 ```
 
-#### **9. Optional: SSL/Domain Setup**
+#### **9. Caddy and Domain Setup (SSL)**
 
-If you want to use a domain name and SSL:
-
-```bash
-# Install nginx and certbot
-apt install nginx certbot python3-certbot-nginx -y
-
-# Configure nginx reverse proxy
-nano /etc/nginx/sites-available/beeper-service
-```
-
-**Nginx configuration:**
-```nginx
-server {
-    listen 80;
-    server_name your-domain.com;
-
-    location / {
-        proxy_pass http://localhost:3000;
-        proxy_set_header Host $host;
-        proxy_set_header X-Real-IP $remote_addr;
-        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
-        proxy_set_header X-Forwarded-Proto $scheme;
-    }
-}
-```
+Use Caddy (already included in `docker-compose.yml`) for automatic HTTPS via Let’s Encrypt.
 
 ```bash
-# Enable site
-ln -s /etc/nginx/sites-available/beeper-service /etc/nginx/sites-enabled/
-nginx -t
-systemctl reload nginx
+# 1) Set your domain in .env
+DOMAIN=your-domain.com
 
-# Get SSL certificate
-certbot --nginx -d your-domain.com
+# 2) Create DNS A records pointing to your droplet IP
+#    - A  your-domain.com   -> <droplet-ip>
+#    - A  ws.your-domain.com -> <droplet-ip>
+#    Wait for DNS to propagate (often within minutes).
 
-# Update UFW for HTTPS
+# 3) Ensure firewall allows 80, 443, and 1883
 ufw allow 80/tcp
 ufw allow 443/tcp
-ufw delete allow 3000/tcp  # Remove direct access
+ufw allow 1883/tcp
+
+# 4) Start the stack
+docker compose up -d
+
+# 5) Verify that Caddy obtained certificates
+docker compose logs -f caddy | sed -n '1,120p'
+
+# 6) Validate endpoints
+curl -I https://$DOMAIN/health
 ```
+
+> About `DOMAIN` usage:
+> - `docker-compose.yml` passes `DOMAIN` to the Caddy container.
+> - `Caddyfile` uses the `{$DOMAIN}` placeholder to configure the virtual hosts for both `https://$DOMAIN` and `wss://ws.$DOMAIN`.
+> - The Node.js app does not use `DOMAIN`; it listens on `HOST:PORT` and is reverse-proxied by Caddy.
 
 #### **10. Backup Strategy**
 ```bash
@@ -259,6 +256,11 @@ tar -czf mqtt-backup-$(date +%Y%m%d).tar.gz passwd acl mosquitto.conf
    ```bash
    docker-compose up -d
    ```
+
+> Development tips:
+> - Inside Compose, `beeper-service` connects to `mosquitto` via `mqtt://mosquitto:1883`.
+> - Your ESP32 or other clients should connect to your machine’s IP (not `mosquitto`) on port `1883`.
+> - Avoid `localhost` as broker from devices; it refers to the device itself, not your host.
 
 ### Production (Docker)
 
@@ -320,36 +322,6 @@ tar -czf mqtt-backup-$(date +%Y%m%d).tar.gz passwd acl mosquitto.conf
            - secretRef:
                name: beeper-service-secrets
    ```
-
-### Cloud Providers
-
-#### AWS ECS
-```bash
-# Store secrets in AWS Systems Manager
-aws ssm put-parameter \
-  --name "/beeper-service/mqtt-password" \
-  --value "your-password" \
-  --type "SecureString"
-
-# Reference in ECS task definition
-"secrets": [
-  {
-    "name": "MQTT_PASSWORD",
-    "valueFrom": "/beeper-service/mqtt-password"
-  }
-]
-```
-
-#### Google Cloud Run
-```bash
-# Store secrets in Secret Manager
-echo "your-secret" | gcloud secrets create sentry-webhook-secret --data-file=-
-
-# Deploy with secrets
-gcloud run deploy beeper-service \
-  --image=gcr.io/PROJECT/beeper-service \
-  --set-secrets="SENTRY_WEBHOOK_SECRET=sentry-webhook-secret:latest"
-```
 
 ## 🔍 Security Verification
 

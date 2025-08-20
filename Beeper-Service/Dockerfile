@@ -8,13 +8,22 @@ FROM node:22-alpine AS builder
 WORKDIR /app
 
 # Copy package files ONLY (best caching - these change least frequently)
-COPY package.json ./
+COPY package.json package-lock.json* ./
 
-# Install dependencies using npm (smaller than pnpm for final image)
-# Use npm ci for faster, reproducible, clean installs
-RUN npm ci --only=production --no-audit --no-fund && \
+# Install dependencies
+# 1) Install ONLY production deps into prod_node_modules
+# 2) Install full deps (incl. dev) for building
+RUN if [ -f package-lock.json ]; then \
+      npm ci --omit=dev --no-audit --no-fund; \
+    else \
+      npm install --omit=dev --no-audit --no-fund; \
+    fi && \
     cp -R node_modules prod_node_modules && \
-    npm ci --no-audit --no-fund
+    if [ -f package-lock.json ]; then \
+      npm ci --no-audit --no-fund; \
+    else \
+      npm install --no-audit --no-fund; \
+    fi
 
 # Copy source files (changes more frequently than deps)
 COPY tsconfig.json ./

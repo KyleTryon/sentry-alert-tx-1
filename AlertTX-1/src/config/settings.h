@@ -23,7 +23,7 @@ const int BUTTON_C_PIN = 2;        // GPIO2 - Built-in D2 button (Button C)
 const int BUZZER_PIN = 15;          // GPIO15 (A3) - Passive buzzer
 
 // LED Pin
-const int LED_PIN = 14;             // GPIO14 (A4) - External 3mm Green LED
+const int LED_PIN = 17;             // GPIO17 (A0) - External LED via 220Ω resistor
 
 // Note: CHG LED is hardware controlled and shows battery charging status
 // NeoPixel at GPIO33 is also available for RGB status indicators
