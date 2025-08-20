@@ -40,7 +40,9 @@ void AlertsScreen::update() {
 
 void AlertsScreen::draw() {
     Screen::draw();
+    // Draw title once per frame
     drawHeader();
+    // Only redraw list area when necessary to avoid flicker
     drawList();
 }
 
@@ -53,8 +55,17 @@ void AlertsScreen::drawList() {
     visibleRows = availableHeight / ROW_HEIGHT;
     if (visibleRows < 1) visibleRows = 1;
 
+    // Clear list area and draw a top separator to avoid artifacts under the title
     display->fillRect(0, LIST_START_Y, DISPLAY_WIDTH, availableHeight, ThemeManager::getSurfaceBackground());
-    display->drawRect(0, LIST_START_Y, DISPLAY_WIDTH, availableHeight, ThemeManager::getBorder());
+    DisplayUtils::drawSeparatorLine(display, LIST_START_Y - 1, ThemeManager::getBorder());
+
+    if (messageCount == 0) {
+        // Empty state placeholder (treated like a read message)
+        const char* emptyMsg = "No new messages";
+        int midY = LIST_START_Y + (availableHeight / 2) - 4;
+        DisplayUtils::centerTextWithColor(display, emptyMsg, 1, midY, ThemeManager::getSecondaryText());
+        return;
+    }
 
     int endIndex = min(messageCount, scrollOffset + visibleRows);
     int y = LIST_START_Y + 2;

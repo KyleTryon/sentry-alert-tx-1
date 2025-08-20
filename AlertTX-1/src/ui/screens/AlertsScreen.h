@@ -2,6 +2,7 @@
 #define ALERTSSCREEN_H
 
 #include "../core/Screen.h"
+#include "../../config/DisplayConfig.h"
 #include "../core/DisplayUtils.h"
 #include "../core/ScreenManager.h"
 #include "../../icons/mail_16.h"
@@ -32,9 +33,12 @@ private:
     int visibleRows = 4;
 
     static const int ROW_HEIGHT = 28;
-    static const int LIST_START_Y = 40;
+    static const int LIST_START_Y = MENU_START_Y; // Align with other screens
     static const int ICON_PADDING_X = 10;
     static const int TEXT_PADDING_X = 10;
+
+    // Redraw control
+    bool listDirty = true;
 
     // Forward-declared detail screen class
     class AlertDetailScreen;
@@ -62,6 +66,7 @@ private:
     void drawList();
     void drawRow(int index, int y);
     void ensureSelectionVisible();
+    void invalidateList() { listDirty = true; }
 
     void moveUp();
     void moveDown();
