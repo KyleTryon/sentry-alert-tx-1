@@ -16,7 +16,11 @@ export function verifySignature(
 
   try {
     const hmac = createHmac('sha256', secret);
-    hmac.update(payload, 'utf8');
+    if (typeof payload === 'string') {
+      hmac.update(payload, 'utf8');
+    } else {
+      hmac.update(payload);
+    }
     const computedSignature = hmac.digest('hex');
     
     // Constant-time comparison to prevent timing attacks

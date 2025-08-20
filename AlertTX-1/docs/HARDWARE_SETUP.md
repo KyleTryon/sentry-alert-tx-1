@@ -74,7 +74,7 @@ The Adafruit ESP32-S3 Reverse TFT Feather includes a built-in color TFT display 
 ```cpp
 // Audio and LED pins
 const int BUZZER_PIN = 15;  // GPIO15 (A3) - Passive buzzer
-const int LED_PIN = 13;     // GPIO13 (D13) - External 3mm Green LED
+const int LED_PIN = 14;     // GPIO14 (A4) - External 3mm Green LED
 ```
 
 ## 🖥️ Display Troubleshooting
@@ -193,7 +193,7 @@ tft.setRotation(3);
    - Ensure proper heat dissipation
 
 2. **LED Wiring**
-   - Connect anode (long leg) to `LED_PIN` (GPIO13) through a 220Ω current-limiting resistor
+   - Connect anode (long leg) to `LED_PIN` (GPIO14) through a 220Ω current-limiting resistor
    - Connect cathode (short leg) to GND
    - Use appropriate wire gauge (22-24 AWG)
 
@@ -255,7 +255,7 @@ Alert TX-1 Component Connections
 │  └─────────┘                                    │
 │                                                 │
 │  ┌─────────┐                                    │
-│  │ 3mm LED │Anode─[220Ω]─────► GPIO13 (D13)    │
+│  │ 3mm LED │Anode─[220Ω]─────► GPIO14 (A4)     │
 │  │ Green   │Cathode───────────► GND             │
 │  └─────────┘                                    │
 │                                                 │

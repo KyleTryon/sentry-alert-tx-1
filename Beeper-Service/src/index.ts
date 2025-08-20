@@ -1,5 +1,5 @@
 import { loadConfig } from './config/environment.js';
-import { BeeperServer } from './server.js';
+import { createBeeperServer } from './server.js';
 
 async function main(): Promise<void> {
   try {
@@ -9,7 +9,7 @@ async function main(): Promise<void> {
     console.log('Configuration loaded successfully');
 
     // Create and start server
-    const server = new BeeperServer();
+    const server = createBeeperServer();
     
     // Handle graceful shutdown
     const gracefulShutdown = async (signal: string): Promise<void> => {

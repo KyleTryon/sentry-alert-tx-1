@@ -24,7 +24,7 @@ This document provides a comprehensive reference for the pin assignments used in
 | **Button B** | GPIO1 | D1 | Built-in D1 button | Physical button on board |
 | **Button C** | GPIO2 | D2 | Built-in D2 button | Physical button on board |
 | **Buzzer** | GPIO12 | D12 | KLJ-9025-3627 passive buzzer | Positive terminal |
-| **LED** | GPIO18 | A3 | External 3mm Green LED | Anode via 220Ω resistor |
+| **LED** | GPIO14 | A4 | External 3mm Green LED | Anode via 220Ω resistor |
 
 ### Built-in Features (No External Wiring Required)
 
@@ -61,7 +61,7 @@ The Alert TX-1 uses the three built-in buttons on the board, labeled A, B, and C
 const int BUTTON_A_PIN = 0;        // GPIO0 - Built-in D0/BOOT button (Button A)
 const int BUTTON_B_PIN = 1;        // GPIO1 - Built-in D1 button (Button B)
 const int BUTTON_C_PIN = 2;        // GPIO2 - Built-in D2 button (Button C)
-const int LED_PIN = 18;            // GPIO18 - External 3mm Green LED
+const int LED_PIN = 14;            // GPIO14 - External 3mm Green LED
 ```
 
 **Built-in Buttons:**
@@ -85,7 +85,7 @@ const int LED_PIN = 18;            // GPIO18 - External 3mm Green LED
 
 ```cpp
 const int BUZZER_PIN = 12;  // GPIO12 (D12)
-const int LED_PIN = 18;     // GPIO18 (A3)
+const int LED_PIN = 14;     // GPIO14 (A4)
 ```
 
 **Buzzer Wiring:**
@@ -153,7 +153,7 @@ This difference is important for deep sleep wake-up functionality and proper but
 | GPIO7 | TFT_I2C_POWER | Display and STEMMA QT power control |
 | GPIO8 | A5 | ADC input |
 | GPIO12 | D12 | Buzzer (used by project) |
-| GPIO18 | A3 | External LED (used by project) |
+| GPIO14 | A4 | External LED (used by project) |
 | GPIO21 | NEOPIXEL_POWER | NeoPixel power control |
 | GPIO33 | NEOPIXEL | RGB LED |
 | GPIO40-45 | TFT Display | Built-in display interface |
@@ -207,7 +207,7 @@ Adafruit ESP32-S3 Reverse TFT Feather
 │  └─────────┘    │                             │ │
 │                 │                             │ │
 │  ┌─────────┐    │                             │ │
-│  │ 3mm LED │────┤ GPIO18 (A3) - External LED  │ │
+│  │ 3mm LED │────┤ GPIO14 (A4) - External LED  │ │
 │  │ (Green) │    │ (via 220Ω resistor)         │ │
 │  └─────────┘    │                             │ │
 │                 │                             │ │
