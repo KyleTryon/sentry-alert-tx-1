@@ -1,14 +1,18 @@
-#ifndef ICON_STRUCT_H
-#define ICON_STRUCT_H
+#ifndef ICON_H
+#define ICON_H
 
 #include <Arduino.h>
 
+// Simple icon descriptor for RGB565 PROGMEM bitmaps
+// Field names (w/h) match existing code usage in DisplayUtils and screens
 struct Icon {
-	int x;
-	int y;
-	int w;
-	int h;
-	const uint16_t* data; // RGB565 pixel data in PROGMEM
+	int16_t x;
+	int16_t y;
+	uint16_t w;
+	uint16_t h;
+	const uint16_t* data; // PROGMEM pointer to pixel data
 };
 
-#endif // ICON_STRUCT_H
+#endif // ICON_H
+
+

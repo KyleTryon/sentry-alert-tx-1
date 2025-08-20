@@ -100,7 +100,7 @@ clean:
 	@echo "🧹 Cleaning generated files..."
 	@rm -f src/ringtones/ringtone_data.h
 	@rm -f .ringtone_cache
-	@rm -rf src/icons/*.h
+	@find src/icons -type f -name '*.h' ! -name 'Icon.h' -delete
 	@echo "✅ Clean complete"
 
 # Show help
