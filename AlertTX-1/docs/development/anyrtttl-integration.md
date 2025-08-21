@@ -298,9 +298,11 @@ AlertTX-1/
 ├── tools/
 │   └── generate_ringtone_data.py # ✅ Multi-format generation
 └── docs/
-    ├── ANYRTTTL_INTEGRATION.md   # ✅ This documentation
-    ├── RINGTONE_BUILD_SYSTEM.md  # ✅ Build system docs
-    └── BEEPER_HERO_GAME.md       # ✅ Complete game documentation
+    ├── development/
+    │   └── anyrtttl-integration.md   # ✅ This documentation
+    └── features/
+        ├── ringtone-system.md        # ✅ Build system docs
+        └── beeper-hero-game.md       # ✅ Complete game documentation
 ```
 
 ## Troubleshooting

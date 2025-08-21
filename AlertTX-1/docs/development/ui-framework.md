@@ -101,9 +101,9 @@ screenManager->pushScreen(my);
 
 ## See also
 
-- Hardware setup: docs/hardware-setup.md
-- Display troubleshooting: docs/display-troubleshooting.md
-- Audio (AnyRTTTL) and ringtone build system: docs/anyrtttl-integration.md, docs/ringtone-build-system.md
-- Icon pipeline: docs/ICON_SYSTEM_SUMMARY.md
-- Power management: docs/power-management.md
+- Hardware setup: [Hardware Setup](../setup/hardware-setup.md)
+- Display troubleshooting: [Display Troubleshooting](../setup/display-troubleshooting.md)
+- Audio (AnyRTTTL) and ringtone build system: [AnyRTTTL Integration](anyrtttl-integration.md), [Ringtone System](../features/ringtone-system.md)
+- Icon pipeline: [Icon System](../features/icon-system.md)
+- Power management: [Power Management](../features/power-management.md)
 

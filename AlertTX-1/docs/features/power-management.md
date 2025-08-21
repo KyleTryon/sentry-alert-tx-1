@@ -13,8 +13,8 @@
 - Ringtone should be triggered on a foreground wake when new messages are presented to the user (see Wake Behavior and Ringtone below).
 
 ## Hardware References
-- **Pinout**: `docs/pinout-reference.md` - Battery Monitor MAX17048 (I2C 0x36), VBAT, wake sources, TFT_BACKLITE (GPIO45)
-- **Hardware Setup**: `docs/hardware-setup.md` - Display power, pin assignments, LiPo 400mAh specs
+- **Pinout**: [Pinout Reference](../setup/pinout-reference.md) - Battery Monitor MAX17048 (I2C 0x36), VBAT, wake sources, TFT_BACKLITE (GPIO45)
+- **Hardware Setup**: [Hardware Setup](../setup/hardware-setup.md) - Display power, pin assignments, LiPo 400mAh specs
 
 ## Architecture Overview
 Introduce `PowerManager` to orchestrate power states. Integrate with `InputRouter` for inactivity tracking and with `ScreenManager` for skip-splash behavior on wake.

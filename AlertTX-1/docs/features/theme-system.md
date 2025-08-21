@@ -291,9 +291,9 @@ Scroll down to view:
 
 ## 📚 Related Documentation
 
-- **[Phase 2 Implementation Complete](PHASE2_IMPLEMENTATION_COMPLETE.md)**: Overall component architecture
-- **[UI Framework Expansion Plan](UI_FRAMEWORK_EXPANSION_PLAN.md)**: Complete development roadmap
-- **[Navigation System Complete](NAVIGATION_SYSTEM_COMPLETE.md)**: Screen navigation details
+- **[UI Framework Overview](../development/ui-framework.md)**: Overall component architecture
+- **[Navigation System](../development/navigation-system.md)**: Screen navigation details
+- **[Build System](../development/build-system.md)**: Build and deployment
 
 ## 🏁 Summary
 

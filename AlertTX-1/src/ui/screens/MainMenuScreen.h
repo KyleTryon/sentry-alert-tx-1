@@ -8,6 +8,7 @@
 class AlertsScreen;
 class GamesScreen;
 class SettingsScreen;
+class HardwareTestScreen;
 
 /**
  * MainMenuScreen
@@ -51,17 +52,20 @@ public:
     void onAlertsSelected();
     void onGamesSelected();
     void onSettingsSelected();
+    void onHardwareTestSelected();
     
     // Static callback wrappers for C-style callbacks
     static void alertsCallback();
     static void gamesCallback();
     static void settingsCallback();
+    static void hardwareTestCallback();
     
 private:
     // Screen instances for navigation
     AlertsScreen* alertsScreen;
     GamesScreen* gamesScreen;
     SettingsScreen* settingsScreen;
+    HardwareTestScreen* hardwareTestScreen;
     
     // Helper methods
     void createMenuItems();

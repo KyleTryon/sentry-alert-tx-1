@@ -23,8 +23,8 @@ This document provides a comprehensive reference for the pin assignments used in
 | **Button A** | GPIO0 | D0/BOOT | Built-in D0/BOOT button | Physical button on board |
 | **Button B** | GPIO1 | D1 | Built-in D1 button | Physical button on board |
 | **Button C** | GPIO2 | D2 | Built-in D2 button | Physical button on board |
-| **Buzzer** | GPIO12 | D12 | KLJ-9025-3627 passive buzzer | Positive terminal |
-| **LED** | GPIO17 | A0 | External 3mm Green LED | Anode via 220Ω resistor |
+| **Buzzer** | GPIO14 | A4 | KLJ-9025-3627 passive buzzer | Positive terminal |
+| **LED** | GPIO18 | A0 | External 3mm Green LED | Anode via 220Ω resistor |
 
 ### Built-in Features (No External Wiring Required)
 
@@ -61,7 +61,7 @@ The Alert TX-1 uses the three built-in buttons on the board, labeled A, B, and C
 const int BUTTON_A_PIN = 0;        // GPIO0 - Built-in D0/BOOT button (Button A)
 const int BUTTON_B_PIN = 1;        // GPIO1 - Built-in D1 button (Button B)
 const int BUTTON_C_PIN = 2;        // GPIO2 - Built-in D2 button (Button C)
-const int LED_PIN = 17;            // GPIO17 - External LED (A0)
+const int LED_PIN = 18;            // GPIO18 - External LED (A0)
 ```
 
 **Built-in Buttons:**
@@ -84,20 +84,20 @@ const int LED_PIN = 17;            // GPIO17 - External LED (A0)
 ### Audio and LED Pins
 
 ```cpp
-const int BUZZER_PIN = 12;  // GPIO12 (D12)
-const int LED_PIN = 17;     // GPIO17 (A0)
+const int BUZZER_PIN = 14;  // GPIO14 (A4)
+const int LED_PIN = 18;     // GPIO18 (A0)
 ```
 
 **Buzzer Wiring:**
 - **Model**: [KLJ-9025-3627](https://www.aliexpress.us/item/2251832678338636.html) (2731Hz resonant frequency)
-- Connect buzzer positive (+) terminal to GPIO12
+- Connect buzzer positive (+) terminal to GPIO14 (A4)
 - Connect buzzer negative (-) terminal to GND
 - **Current Setup**: Direct connection (reduced volume due to GPIO current limits)
 - **For Full Volume**: Use transistor driver circuit (see HARDWARE_SETUP.md)
 - Use PWM output for tone generation
 
 **LED Wiring:**
-- Connect LED anode (long leg) to GPIO17 (A0) through a 220Ω resistor
+- Connect LED anode (long leg) to GPIO18 (A0) through a 220Ω resistor
 - Connect LED cathode (short leg) to GND
 - LED specifications: 3mm Green LED, ~2.0V forward voltage, 20mA forward current
 
@@ -152,8 +152,8 @@ This difference is important for deep sleep wake-up functionality and proper but
 | GPIO4 | SCL | I2C clock line (STEMMA QT) |
 | GPIO7 | TFT_I2C_POWER | Display and STEMMA QT power control |
 | GPIO8 | A5 | ADC input |
-| GPIO12 | D12 | Buzzer (used by project) |
-| GPIO17 | A0 | External LED (used by project) |
+| GPIO14 | A4 | Buzzer (used by project) |
+| GPIO18 | A0 | External LED (used by project) |
 | GPIO21 | NEOPIXEL_POWER | NeoPixel power control |
 | GPIO33 | NEOPIXEL | RGB LED |
 | GPIO40-45 | TFT Display | Built-in display interface |
@@ -167,10 +167,12 @@ This difference is important for deep sleep wake-up functionality and proper but
 | GPIO9 | D9 | GPIO, ADC1_CH8, Touch T9 |
 | GPIO10 | D10 | GPIO, ADC1_CH9, Touch T10 |
 | GPIO11 | D11 | GPIO, ADC2_CH0, Touch T11 |
+| GPIO12 | D12 | GPIO, ADC2_CH1, Touch T12 |
 | GPIO13 | D13 | GPIO, ADC2_CH2, Touch T13 |
 | GPIO14 | A4 | GPIO, ADC2_CH3, Touch T14 |
 | GPIO15 | A3 | GPIO, ADC2_CH4, Touch T15 |
 | GPIO16 | A2 | GPIO, ADC2_CH5, Touch T16 |
+| GPIO17 | A1 | GPIO, ADC2_CH6, Touch T17 |
 | GPIO35 | MOSI | GPIO, SPI MOSI |
 | GPIO36 | SCK | GPIO, SPI SCK |
 | GPIO37 | MISO | GPIO, SPI MISO |
@@ -202,12 +204,12 @@ Adafruit ESP32-S3 Reverse TFT Feather
 │  └─────────┘    │                             │ │
 │                 │                             │ │
 │  ┌─────────┐    │                             │ │
-│  │ Buzzer  │────┤ GPIO12 (D12)                 │ │
+│  │ Buzzer  │────┤ GPIO14 (A4)                  │ │
 │  │  (+)    │    │                             │ │
 │  └─────────┘    │                             │ │
 │                 │                             │ │
 │  ┌─────────┐    │                             │ │
-│  │ 3mm LED │────┤ GPIO17 (A0) - External LED  │ │
+│  │ 3mm LED │────┤ GPIO18 (A0) - External LED  │ │
 │  │ (Green) │    │ (via 220Ω resistor)         │ │
 │  └─────────┘    │                             │ │
 │                 │                             │ │
@@ -244,8 +246,8 @@ const int BUTTON_B_PIN = 1;         // Button B, pulled LOW, goes HIGH when pres
 const int BUTTON_C_PIN = 2;         // Button C, pulled LOW, goes HIGH when pressed
 
 // Audio and LED
-const int BUZZER_PIN = 12;
-const int LED_PIN = 17;              // External LED via 220Ω resistor
+const int BUZZER_PIN = 14;              // GPIO14 (A4)
+const int LED_PIN = 18;              // GPIO18 (A0) - External LED via 220Ω resistor
 ```
 
 ## Troubleshooting
@@ -258,7 +260,7 @@ const int LED_PIN = 17;              // External LED via 220Ω resistor
    - Ensure internal pull-up resistors are enabled
 
 2. **Buzzer Not Working**
-   - Verify GPIO12 connection
+   - Verify GPIO14 (A4) connection
    - Check buzzer polarity
    - Ensure PWM is properly configured
 
@@ -310,4 +312,6 @@ void testPins() {
 
 - **v1.0**: Initial pinout documentation based on Adafruit ESP32-S3 Reverse TFT Feather
 - **v1.1**: Updated with actual GPIO assignments and conflict resolution
-- **v1.2**: Updated LED pin to A0 (GPIO17) 
+- **v1.2**: Updated LED pin to A0 (GPIO17)
+- **v1.3**: Corrected A0 GPIO mapping to GPIO18 (was incorrectly listed as GPIO17)
+- **v1.4**: Updated buzzer pin from D12 (GPIO12) to A4 (GPIO14) to match user's wiring 

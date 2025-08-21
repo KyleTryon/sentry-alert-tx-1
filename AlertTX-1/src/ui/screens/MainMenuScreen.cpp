@@ -3,6 +3,9 @@
 #include "AlertsScreen.h"
 #include "GamesScreen.h"
 #include "SettingsScreen.h"
+#include "HardwareTestScreen.h"
+#include "../../hardware/Buzzer.h"
+#include "../../hardware/LED.h"
 
 // Static members
 MainMenuScreen* MainMenuScreen::instance = nullptr;
@@ -15,7 +18,8 @@ const Theme* MainMenuScreen::themes[THEME_COUNT] = {
 };
 
 MainMenuScreen::MainMenuScreen(Adafruit_ST7789* display)
-    : Screen(display, "MainMenu", 1), alertsScreen(nullptr), gamesScreen(nullptr), settingsScreen(nullptr) {
+    : Screen(display, "MainMenu", 1), alertsScreen(nullptr), gamesScreen(nullptr), 
+      settingsScreen(nullptr), hardwareTestScreen(nullptr) {
     
     instance = this;  // Set static instance for callbacks
     
@@ -151,6 +155,23 @@ void MainMenuScreen::onSettingsSelected() {
     }
 }
 
+void MainMenuScreen::onHardwareTestSelected() {
+    Serial.println("MainMenuScreen: Hardware Test selected");
+    
+    if (!hardwareTestScreen) {
+        Serial.println("ERROR: HardwareTestScreen not initialized!");
+        return;
+    }
+    
+    // Navigate to HardwareTestScreen
+    ScreenManager* manager = GlobalScreenManager::getInstance();
+    if (manager) {
+        manager->pushScreen(hardwareTestScreen);
+    } else {
+        Serial.println("ERROR: No global screen manager available!");
+    }
+}
+
 // Static callback wrappers
 void MainMenuScreen::alertsCallback() {
     if (instance) {
@@ -170,6 +191,12 @@ void MainMenuScreen::settingsCallback() {
     }
 }
 
+void MainMenuScreen::hardwareTestCallback() {
+    if (instance) {
+        instance->onHardwareTestSelected();
+    }
+}
+
 // Private helper methods
 
 void MainMenuScreen::createMenuItems() {
@@ -180,6 +207,7 @@ void MainMenuScreen::createMenuItems() {
     mainMenu->addMenuItem("Alerts", 1, alertsCallback);
     mainMenu->addMenuItem("Games", 2, gamesCallback);
     mainMenu->addMenuItem("Settings", 3, settingsCallback);
+    mainMenu->addMenuItem("Hardware Test", 4, hardwareTestCallback);
     
     // Auto-layout the menu
     mainMenu->autoLayout();
@@ -199,6 +227,11 @@ void MainMenuScreen::initializeScreens() {
     alertsScreen = new AlertsScreen(display);
     gamesScreen = new GamesScreen(display);
     settingsScreen = new SettingsScreen(display);
+    
+    // For HardwareTestScreen, we need to get reference to LED
+    // This should be available globally
+    extern LED statusLed;
+    hardwareTestScreen = new HardwareTestScreen(display, &statusLed);
     
     Serial.println("MainMenuScreen: All child screens initialized");
 }
@@ -220,6 +253,11 @@ void MainMenuScreen::cleanupScreens() {
     if (settingsScreen) {
         delete settingsScreen;
         settingsScreen = nullptr;
+    }
+    
+    if (hardwareTestScreen) {
+        delete hardwareTestScreen;
+        hardwareTestScreen = nullptr;
     }
     
     Serial.println("MainMenuScreen: Child screens cleaned up");
