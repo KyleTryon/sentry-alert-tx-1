@@ -45,6 +45,9 @@ private:
     unsigned long lastAnimationTime = 0;
     static const unsigned long ANIMATION_SPEED = 100; // ms per frame
     
+    // Countdown tracking
+    unsigned long lastCountdownSecond = 0;
+    
 public:
     AlertNotificationScreen(Adafruit_ST7789* display);
     ~AlertNotificationScreen();
@@ -83,6 +86,10 @@ private:
     // Helpers
     int getRemainingTime() const;
     void updateAnimation();
+    
+    // Centralized rendering methods
+    void drawStaticContent();
+    void drawDynamicContent();
 };
 
 #endif // ALERTNOTIFICATIONSCREEN_H

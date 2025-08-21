@@ -1,5 +1,6 @@
 #include "MainMenuScreen.h"
 #include "../core/ScreenManager.h"
+#include "../core/DisplayUtils.h"
 #include "AlertsScreen.h"
 #include "GamesScreen.h"
 #include "SettingsScreen.h"
@@ -34,6 +35,11 @@ MainMenuScreen::MainMenuScreen(Adafruit_ST7789* display)
     
     // Setup menu items
     setupMenu();
+    
+    // Set up draw regions for efficient rendering
+    addDrawRegion(DirectDrawRegion::STATIC, [this, display]() { 
+        DisplayUtils::drawTitle(display, "Alert TX-1");
+    });
     
     Serial.println("MainMenuScreen created");
 }
@@ -70,12 +76,8 @@ void MainMenuScreen::update() {
 }
 
 void MainMenuScreen::draw() {
+    // Base class handles drawing based on dirty regions
     Screen::draw();
-    
-    // Draw title
-    drawTitle("Alert TX-1");
-    
-    // Components are drawn by Screen::draw()
 }
 
 void MainMenuScreen::handleButtonPress(int button) {
@@ -102,6 +104,9 @@ void MainMenuScreen::cycleTheme() {
     
     // Force full redraw with new theme
     markForFullRedraw();
+    if (mainMenu) {
+        mainMenu->markDirty();
+    }
 }
 
 void MainMenuScreen::onAlertsSelected() {

@@ -5,6 +5,11 @@ AlertNotificationScreen* AlertNotificationScreen::instance = nullptr;
 AlertNotificationScreen::AlertNotificationScreen(Adafruit_ST7789* display)
     : Screen(display, "AlertNotification", 99) {
     instance = this;
+    
+    // Set up draw regions for efficient rendering
+    addDrawRegion(DirectDrawRegion::STATIC, [this, display]() { drawStaticContent(); });
+    addDrawRegion(DirectDrawRegion::DYNAMIC, [this, display]() { drawDynamicContent(); });
+    
     Serial.println("AlertNotificationScreen created");
 }
 
@@ -22,6 +27,7 @@ void AlertNotificationScreen::enter() {
     showTime = millis();
     animationFrame = 0;
     lastAnimationTime = millis();
+    lastCountdownSecond = 0;
     
     // Flash LED to indicate notification
     // Note: Current LED class only supports single blink
@@ -44,29 +50,25 @@ void AlertNotificationScreen::update() {
     // Update animation
     updateAnimation();
     
-    // Check for auto-dismiss
-    if (shouldAutoDismiss && getRemainingTime() <= 0) {
-        Serial.println("AlertNotificationScreen: Auto-dismissing");
-        dismiss();
+    // Check if countdown second changed
+    if (shouldAutoDismiss) {
+        int remaining = getRemainingTime();
+        if (remaining <= 0) {
+            Serial.println("AlertNotificationScreen: Auto-dismissing");
+            dismiss();
+        } else {
+            unsigned long currentSecond = remaining / 1000;
+            if (currentSecond != lastCountdownSecond) {
+                lastCountdownSecond = currentSecond;
+                markDynamicContentDirty(); // Only redraw countdown area
+            }
+        }
     }
 }
 
 void AlertNotificationScreen::draw() {
-    // Draw semi-transparent background overlay
-    drawBackground();
-    
-    // Draw the popup window
-    drawPopupWindow();
-    
-    // Draw content
-    drawHeader();
-    drawMessage();
-    drawActions();
-    
-    // Draw countdown if auto-dismiss is enabled
-    if (shouldAutoDismiss) {
-        drawCountdown();
-    }
+    // Base class handles drawing based on dirty regions
+    Screen::draw();
 }
 
 void AlertNotificationScreen::handleButtonPress(int button) {
@@ -79,7 +81,7 @@ void AlertNotificationScreen::handleButtonPress(int button) {
         case ButtonInput::BUTTON_B:
             // Toggle auto-dismiss
             shouldAutoDismiss = !shouldAutoDismiss;
-            markForFullRedraw();
+            markDynamicContentDirty();
             break;
             
         case ButtonInput::BUTTON_C:
@@ -102,16 +104,13 @@ void AlertNotificationScreen::setMessage(const char* msgTitle, const char* msgBo
 }
 
 void AlertNotificationScreen::drawBackground() {
-    // Draw a darkened overlay effect
-    // Since we can't do true transparency, we'll use a checkerboard pattern
-    uint16_t bg = ThemeManager::getBackground();
+    // Draw a darkened overlay effect using filled rectangles for efficiency
+    // Instead of pixel-by-pixel, use larger blocks for a similar effect
     uint16_t darkBg = display->color565(0, 0, 0); // Black overlay
     
-    for (int y = 0; y < DISPLAY_HEIGHT; y += 2) {
-        for (int x = 0; x < DISPLAY_WIDTH; x += 2) {
-            display->drawPixel(x, y, darkBg);
-            display->drawPixel(x + 1, y + 1, darkBg);
-        }
+    // Draw horizontal stripes for a dimming effect (much faster than pixels)
+    for (int y = 0; y < DISPLAY_HEIGHT; y += 4) {
+        display->fillRect(0, y, DISPLAY_WIDTH, 2, darkBg);
     }
 }
 
@@ -295,5 +294,21 @@ void AlertNotificationScreen::updateAnimation() {
         
         // Only redraw if we're doing animation (future enhancement)
         // For now, no animation to save battery
+    }
+}
+
+void AlertNotificationScreen::drawStaticContent() {
+    // Draw background and popup window (doesn't change)
+    drawBackground();
+    drawPopupWindow();
+    drawHeader();
+    drawMessage();
+    drawActions();
+}
+
+void AlertNotificationScreen::drawDynamicContent() {
+    // Draw countdown if auto-dismiss is enabled
+    if (shouldAutoDismiss) {
+        drawCountdown();
     }
 }

@@ -1,6 +1,20 @@
 #include "SystemInfoScreen.h"
 #include "../core/Theme.h"
 
+SystemInfoScreen::SystemInfoScreen(Adafruit_ST7789* display)
+     : Screen(display, "SystemInfo", 0), batteryPercent(0), batteryVoltage(0.0f), lastRenderMs(0), shouldRedraw(true),
+       lastConnected(false), lastCfgSsid(""), lastIp(""), lastBatteryPercent(-1), lastMetricsUpdateMs(0) {
+    
+    // Set up draw regions for efficient rendering
+    addDrawRegion(DirectDrawRegion::STATIC, [this, display]() { 
+        DisplayUtils::drawTitle(display, "System Info");
+        drawLabels();
+    });
+    addDrawRegion(DirectDrawRegion::DYNAMIC, [this, display]() { 
+        drawValues();
+    });
+}
+
 void SystemInfoScreen::refreshMetrics() {
 	// Battery sampling
 	batteryVoltage = readBatteryVoltage();
@@ -30,37 +44,52 @@ void SystemInfoScreen::update() {
             lastCfgSsid = cfgSsid;
             lastIp = ip;
             lastBatteryPercent = batteryPercent;
-            shouldRedraw = true;
+            markDynamicContentDirty();
         }
     }
 }
 
 void SystemInfoScreen::draw() {
-    if (!isActive()) return;
-    if (shouldRedraw) {
-        shouldRedraw = false;
-        drawContent();
-    }
+    // Base class handles drawing based on dirty regions
+    Screen::draw();
 }
 
-void SystemInfoScreen::drawContent() {
-    // Draw full screen only when data changed
-    display->fillScreen(ThemeManager::getBackground());
-    DisplayUtils::drawTitle(display, "System Info");
-
+void SystemInfoScreen::drawLabels() {
     int x = 10;
     int y = 40;
     int line = 16;
 
     display->setTextColor(ThemeManager::getPrimaryText());
     display->setTextSize(1);
-    display->setCursor(x, y);       display->print("WiFi SSID: "); display->print(lastCfgSsid);
+    display->setCursor(x, y);       display->print("WiFi SSID: ");
     y += line;
-    display->setCursor(x, y);       display->print("Connected: "); display->print(lastConnected ? "Yes" : "No");
+    display->setCursor(x, y);       display->print("Connected: ");
     y += line;
-    display->setCursor(x, y);       display->print("IP: "); display->print(lastIp);
+    display->setCursor(x, y);       display->print("IP: ");
     y += line * 2;
-    display->setCursor(x, y);       display->print("Battery: "); display->print(batteryPercent); display->print("% ("); display->print(batteryVoltage, 2); display->print(" V)");
+    display->setCursor(x, y);       display->print("Battery: ");
+}
+
+void SystemInfoScreen::drawValues() {
+    int x = 10;
+    int y = 40;
+    int line = 16;
+    int valueX = 90; // X position for values
+
+    display->setTextColor(ThemeManager::getPrimaryText());
+    display->setTextSize(1);
+    
+    // Clear and redraw values only
+    display->fillRect(valueX, y, DISPLAY_WIDTH - valueX - 10, line * 5, ThemeManager::getBackground());
+    
+    display->setCursor(valueX, y);       display->print(lastCfgSsid);
+    y += line;
+    display->setCursor(valueX, y);       display->print(lastConnected ? "Yes" : "No");
+    y += line;
+    display->setCursor(valueX, y);       display->print(lastIp);
+    y += line * 2;
+    display->setCursor(valueX, y);       
+    display->print(batteryPercent); display->print("% ("); display->print(batteryVoltage, 2); display->print(" V)");
 }
 
 float SystemInfoScreen::readBatteryVoltage() {

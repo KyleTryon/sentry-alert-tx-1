@@ -37,8 +37,7 @@ private:
     static const int ICON_PADDING_X = 10;
     static const int TEXT_PADDING_X = 10;
 
-    // Redraw control
-    bool listDirty = true;
+
 
     // Forward-declared detail screen class
     class AlertDetailScreen;
@@ -66,7 +65,7 @@ private:
     void drawList();
     void drawRow(int index, int y);
     void ensureSelectionVisible();
-    void invalidateList() { listDirty = true; }
+    void invalidateList() { markDynamicContentDirty(); }
 
     void moveUp();
     void moveDown();

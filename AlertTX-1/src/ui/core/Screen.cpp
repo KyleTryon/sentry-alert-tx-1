@@ -8,6 +8,9 @@ Screen::Screen(Adafruit_ST7789* display, const char* name, int id)
         components[i] = nullptr;
     }
     
+    // Initialize draw regions
+    drawRegionCount = 0;
+    
     if (!display) {
         Serial.printf("ERROR: Screen '%s' created with null display!\n", name);
     }
@@ -23,6 +26,11 @@ Screen::~Screen() {
 void Screen::enter() {
     active = true;
     needsFullRedraw = true;
+    
+    // Mark all regions as needing redraw
+    for (int i = 0; i < drawRegionCount; i++) {
+        drawRegions[i].needsRedraw = true;
+    }
     
     Serial.printf("Entering screen: %s\n", screenName);
     
@@ -66,6 +74,20 @@ void Screen::draw() {
                 components[i]->markDirty();
             }
         }
+        
+        // Mark all regions for redraw
+        for (int i = 0; i < drawRegionCount; i++) {
+            drawRegions[i].needsRedraw = true;
+        }
+    }
+    
+    // Draw direct regions first (static before dynamic)
+    for (int i = 0; i < drawRegionCount; i++) {
+        if (drawRegions[i].type == DirectDrawRegion::STATIC && 
+            drawRegions[i].needsRedraw && drawRegions[i].drawFunc) {
+            drawRegions[i].drawFunc();
+            drawRegions[i].needsRedraw = false;
+        }
     }
     
     // Draw all visible components that need redrawing
@@ -73,6 +95,15 @@ void Screen::draw() {
         if (components[i] && components[i]->isVisible() && components[i]->isDirty()) {
             components[i]->draw();
             components[i]->clearDirty();
+        }
+    }
+    
+    // Draw dynamic regions last
+    for (int i = 0; i < drawRegionCount; i++) {
+        if (drawRegions[i].type == DirectDrawRegion::DYNAMIC && 
+            drawRegions[i].needsRedraw && drawRegions[i].drawFunc) {
+            drawRegions[i].drawFunc();
+            drawRegions[i].needsRedraw = false;
         }
     }
 }
@@ -259,4 +290,67 @@ void Screen::optimizeComponentOrder() {
             writeIndex++;
         }
     }
+}
+
+// Direct drawing support implementation
+
+void Screen::addDrawRegion(DirectDrawRegion::Type type, std::function<void()> drawFunc) {
+    if (drawRegionCount >= MAX_DRAW_REGIONS) {
+        Serial.printf("ERROR: Screen '%s' draw region limit exceeded\n", screenName);
+        return;
+    }
+    
+    drawRegions[drawRegionCount].type = type;
+    drawRegions[drawRegionCount].drawFunc = drawFunc;
+    drawRegions[drawRegionCount].needsRedraw = true;
+    drawRegionCount++;
+}
+
+void Screen::markRegionDirty(DirectDrawRegion::Type type) {
+    for (int i = 0; i < drawRegionCount; i++) {
+        if (drawRegions[i].type == type) {
+            drawRegions[i].needsRedraw = true;
+        }
+    }
+}
+
+void Screen::clearRegionDirty(DirectDrawRegion::Type type) {
+    for (int i = 0; i < drawRegionCount; i++) {
+        if (drawRegions[i].type == type) {
+            drawRegions[i].needsRedraw = false;
+        }
+    }
+}
+
+// Backwards compatibility helpers
+
+bool Screen::isStaticContentDrawn() const {
+    // Check if any static region needs redraw
+    for (int i = 0; i < drawRegionCount; i++) {
+        if (drawRegions[i].type == DirectDrawRegion::STATIC && drawRegions[i].needsRedraw) {
+            return false;
+        }
+    }
+    return true;
+}
+
+void Screen::markStaticContentDrawn() {
+    clearRegionDirty(DirectDrawRegion::STATIC);
+}
+
+void Screen::markDynamicContentDirty() {
+    markRegionDirty(DirectDrawRegion::DYNAMIC);
+}
+
+bool Screen::shouldRedrawDynamic() const {
+    for (int i = 0; i < drawRegionCount; i++) {
+        if (drawRegions[i].type == DirectDrawRegion::DYNAMIC && drawRegions[i].needsRedraw) {
+            return true;
+        }
+    }
+    return false;
+}
+
+void Screen::clearDynamicRedrawFlag() {
+    clearRegionDirty(DirectDrawRegion::DYNAMIC);
 }

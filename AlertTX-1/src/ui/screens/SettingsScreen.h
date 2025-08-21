@@ -61,11 +61,13 @@ public:
     void onRingtoneSelected();
     void onThemesSelected();  // Navigate to theme selection screen
     void onSystemInfoSelected();
+    void onFlashlightSelected();
     
     // Static callback wrappers
     static void ringtoneCallback();
     static void themeCallback();
     static void systemInfoCallback();
+    static void flashlightCallback();
     
 private:
     // Helper methods

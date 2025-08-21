@@ -2,6 +2,7 @@
 #define HARDWARE_TEST_SCREEN_H
 
 #include "../core/Screen.h"
+#include "../core/DisplayUtils.h"
 #include "../components/MenuContainer.h"
 #include "../../hardware/LED.h"
 
@@ -56,6 +57,10 @@ private:
     void setupMenu();
     void updateLEDTest();
     void updateBuzzerTest();
+    
+    // Centralized rendering methods
+    void drawStaticContent();
+    void drawDynamicContent();
 };
 
 #endif // HARDWARE_TEST_SCREEN_H

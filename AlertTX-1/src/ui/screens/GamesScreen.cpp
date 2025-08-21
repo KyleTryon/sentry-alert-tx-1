@@ -10,6 +10,11 @@ GamesScreen::GamesScreen(Adafruit_ST7789* display)
     : Screen(display, "Games", 1), gamesMenu(nullptr) {
     Serial.println("GamesScreen created");
     instance = this;
+    
+    // Set up draw regions for efficient rendering
+        addDrawRegion(DirectDrawRegion::STATIC, [this, display]() {
+        DisplayUtils::drawTitle(display, "Games");
+    });
 }
 
 GamesScreen::~GamesScreen() {
@@ -45,8 +50,8 @@ void GamesScreen::update() {
 }
 
 void GamesScreen::draw() {
+    // Base class handles drawing based on dirty regions
     Screen::draw();
-    DisplayUtils::drawTitle(display, "Games");
 }
 
 void GamesScreen::handleButtonPress(int button) {

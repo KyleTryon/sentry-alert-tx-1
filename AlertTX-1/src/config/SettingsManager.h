@@ -31,6 +31,7 @@ private:
     static const char* NAMESPACE;    // "alerttx1"
     static const char* THEME_KEY;    // "theme_idx"
     static const char* RINGTONE_KEY; // "ring_idx"
+    static const char* FLASHLIGHT_KEY; // "flash_on"
     // Network/MQTT keys
     // (Network settings now build-time only; keys retained for future optional use)
     static const char* WIFI_SSID_KEY;       // "wifi_ssid"
@@ -87,6 +88,10 @@ public:
     // Ringtone selection persistence
     static int getRingtoneIndex();
     static bool setRingtoneIndex(int index);
+    
+    // Flashlight state persistence
+    static bool getFlashlightEnabled();
+    static bool setFlashlightEnabled(bool enabled);
     
     /**
      * Check if settings have been initialized (any key exists)

@@ -10,10 +10,16 @@ The Alert TX-1 project uses an automated build system to convert RTTTL ringtone 
 RTTTL (Ring Tone Text Transfer Language) files are stored as plain text in `data/ringtones/`:
 ```
 data/ringtones/
-├── digimon.rtttl.txt
-├── mario.rtttl.txt
-├── spiderman.rtttl.txt
-└── ...
+├── axelf.rtttl.txt         → "Axel F"
+├── digimon.rtttl.txt       → "Digimon"
+├── mario.rtttl.txt         → "Mario"
+├── spiderman.rtttl.txt     → "Spiderman"
+└── ... (16 total ringtones)
+```
+
+**Important**: Each RTTTL file must have the song name on the first line, followed by a colon and the RTTTL data. Example:
+```
+Mario:d=4,o=5,b=125:16e6,16e6,32p,8e6,16c6,8e6,8g6...
 ```
 
 ### 2. Automated Generation with Caching
@@ -23,6 +29,7 @@ The `tools/generate_ringtone_data.py` script:
 - **Only regenerates** when files have changed
 - Reads all `.txt` files (if cache invalid)
 - Extracts RTTTL names and data
+- **Sorts ringtones alphabetically** by their display name
 - **Generates three data formats**:
   - **Binary RTTTL**: Memory-efficient storage (50-70% savings)
   - **Text RTTTL**: Required for AnyRtttl non-blocking API

@@ -16,14 +16,13 @@
  */
 class SystemInfoScreen : public Screen {
 public:
-    SystemInfoScreen(Adafruit_ST7789* display)
-         : Screen(display, "SystemInfo", 0), batteryPercent(0), batteryVoltage(0.0f), lastRenderMs(0), shouldRedraw(true),
-           lastConnected(false), lastCfgSsid(""), lastIp(""), lastBatteryPercent(-1), lastMetricsUpdateMs(0) {}
+    SystemInfoScreen(Adafruit_ST7789* display);
 
- 	void enter() override {
- 		Screen::enter();
- 		refreshMetrics();
- 	}
+ 	 		void enter() override {
+ 			Screen::enter();
+ 			refreshMetrics();
+ 			shouldRedraw = true;
+ 		}
 
 	void update() override;
 
@@ -45,7 +44,8 @@ private:
     unsigned long lastMetricsUpdateMs;
 
  	void refreshMetrics();
-	void drawContent();
+	void drawLabels();
+	void drawValues();
  	static float readBatteryVoltage();
  	static int estimateBatteryPercent(float vbat);
 };

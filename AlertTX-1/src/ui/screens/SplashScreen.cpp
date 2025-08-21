@@ -4,6 +4,12 @@
 SplashScreen::SplashScreen(Adafruit_ST7789* display, MainMenuScreen* mainMenu)
     : Screen(display, "Splash", 0), mainMenuScreen(mainMenu) {
     
+    // Set up draw regions for efficient rendering
+    addDrawRegion(DirectDrawRegion::STATIC, [this, display]() { 
+        drawLogo();
+        drawSubtitle();
+    });
+    
     Serial.println("SplashScreen created");
 }
 
@@ -38,27 +44,18 @@ void SplashScreen::update() {
 }
 
 void SplashScreen::draw() {
-    // Only draw once to prevent flickering from constant redraws
-    if (hasDrawn) return;
-    
-    // Clear screen with theme background
-    display->fillScreen(ThemeManager::getBackground());
-    
-    // Draw the splash content
-    drawLogo();
-    drawSubtitle();
-    
-    // DON'T call Screen::draw() - splash screen has no components and it might interfere
+    // Base class handles drawing based on dirty regions (only draws once for static content)
+    Screen::draw();
     
     // Force display update and add small delay to ensure rendering completes
-    delay(10);  // Small delay to ensure display has time to render
-    
-    // Mark as drawn to prevent redrawing
-    hasDrawn = true;
-    
-    #ifdef DEBUG_SPLASH
-    Serial.println("SplashScreen: Content rendered");
-    #endif
+    if (!hasDrawn) {
+        delay(10);  // Small delay to ensure display has time to render
+        hasDrawn = true;
+        
+        #ifdef DEBUG_SPLASH
+        Serial.println("SplashScreen: Content rendered");
+        #endif
+    }
 }
 
 void SplashScreen::handleButtonPress(int button) {

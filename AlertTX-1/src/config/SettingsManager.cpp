@@ -20,6 +20,7 @@ Preferences SettingsManager::prefs;
 const char* SettingsManager::NAMESPACE = "alerttx1";
 const char* SettingsManager::THEME_KEY = "theme_idx";
 const char* SettingsManager::RINGTONE_KEY = "ring_idx";
+const char* SettingsManager::FLASHLIGHT_KEY = "flash_on";
 const char* SettingsManager::WIFI_SSID_KEY = "wifi_ssid";
 const char* SettingsManager::WIFI_PASSWORD_KEY = "wifi_pass";
 const char* SettingsManager::MQTT_BROKER_KEY = "mqtt_host";
@@ -183,6 +184,23 @@ bool SettingsManager::setRingtoneIndex(int index) {
     }
     Serial.printf("SettingsManager: Failed to save ringtone %d to NVS\n", index);
     return false;
+}
+
+bool SettingsManager::getFlashlightEnabled() {
+    bool enabled = prefs.getBool(FLASHLIGHT_KEY, false);
+    Serial.printf("SettingsManager: Flashlight enabled = %s\n", enabled ? "true" : "false");
+    return enabled;
+}
+
+bool SettingsManager::setFlashlightEnabled(bool enabled) {
+    size_t bytesWritten = prefs.putBool(FLASHLIGHT_KEY, enabled);
+    if (bytesWritten > 0) {
+        Serial.printf("SettingsManager: Flashlight state %s saved\n", enabled ? "ON" : "OFF");
+        return true;
+    } else {
+        Serial.println("SettingsManager: Failed to save flashlight state");
+        return false;
+    }
 }
 
 // WiFi/MQTT getters

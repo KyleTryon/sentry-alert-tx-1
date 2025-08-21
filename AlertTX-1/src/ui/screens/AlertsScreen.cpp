@@ -10,6 +10,11 @@ AlertsScreen::AlertsScreen(Adafruit_ST7789* display)
     messageCount = 0;
     selectedIndex = 0;
     scrollOffset = 0;
+    
+    // Set up draw regions for efficient rendering
+    addDrawRegion(DirectDrawRegion::STATIC, [this, display]() { drawHeader(); });
+    addDrawRegion(DirectDrawRegion::DYNAMIC, [this, display]() { drawList(); });
+    
     Serial.println("AlertsScreen created");
 }
 
@@ -39,11 +44,8 @@ void AlertsScreen::update() {
 }
 
 void AlertsScreen::draw() {
+    // Base class handles drawing based on dirty regions
     Screen::draw();
-    // Draw title once per frame
-    drawHeader();
-    // Only redraw list area when necessary to avoid flicker
-    drawList();
 }
 
 void AlertsScreen::drawHeader() {
@@ -142,7 +144,7 @@ void AlertsScreen::moveUp() {
     int old = selectedIndex;
     selectedIndex = (selectedIndex - 1 + messageCount) % messageCount;
     ensureSelectionVisible();
-    markForFullRedraw();
+    markDynamicContentDirty();
     Serial.printf("AlertsScreen: %d -> %d (up)\n", old, selectedIndex);
 }
 
@@ -151,7 +153,7 @@ void AlertsScreen::moveDown() {
     int old = selectedIndex;
     selectedIndex = (selectedIndex + 1) % messageCount;
     ensureSelectionVisible();
-    markForFullRedraw();
+    markDynamicContentDirty();
     Serial.printf("AlertsScreen: %d -> %d (down)\n", old, selectedIndex);
 }
 
@@ -173,7 +175,7 @@ void AlertsScreen::openDetail() {
 void AlertsScreen::toggleRead() {
     if (selectedIndex < 0 || selectedIndex >= messageCount) return;
     messages[selectedIndex].unread = !messages[selectedIndex].unread;
-    markForFullRedraw();
+    markDynamicContentDirty();
 }
 
 void AlertsScreen::addMessage(const char* title, const char* body, const char* timestamp, bool playTone) {
@@ -207,5 +209,5 @@ void AlertsScreen::addMessage(const char* title, const char* body, const char* t
         ringtonePlayer.playRingtoneByIndex(idx);
     }
 
-    markForFullRedraw();
+    markDynamicContentDirty();
 }

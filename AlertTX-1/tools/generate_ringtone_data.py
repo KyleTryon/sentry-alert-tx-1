@@ -611,6 +611,9 @@ def main():
         except Exception as e:
             print(f"  Warning: Could not read {file_path}: {e}")
     
+    # Sort ringtones alphabetically by their RTTTL name
+    ringtone_files.sort(key=lambda x: x[2].lower())
+    
     if not ringtone_files:
         print("Error: No RTTTL files found!")
         sys.exit(1)

@@ -1,6 +1,7 @@
 #include "HardwareTestScreen.h"
 #include "../../config/settings.h"
 #include "../core/ScreenManager.h"
+#include "../core/DisplayUtils.h"
 #include <Arduino.h>
 
 // Pin definitions for testing
@@ -26,6 +27,10 @@ HardwareTestScreen::HardwareTestScreen(Adafruit_ST7789* display, LED* led)
     
     // Setup menu items
     setupMenu();
+    
+    // Set up draw regions for efficient rendering
+    addDrawRegion(DirectDrawRegion::STATIC, [this, display]() { drawStaticContent(); });
+    addDrawRegion(DirectDrawRegion::DYNAMIC, [this, display]() { drawDynamicContent(); });
     
     Serial.println("HardwareTestScreen created");
 }
@@ -65,23 +70,40 @@ void HardwareTestScreen::exit() {
 void HardwareTestScreen::update() {
     Screen::update();
     
+    // Track previous state
+    bool wasLedActive = ledTestActive;
+    bool wasBuzzerActive = buzzerTestActive;
+    
     updateLEDTest();
     updateBuzzerTest();
+    
+    // Mark dirty if status changed
+    if (ledTestActive != wasLedActive || buzzerTestActive != wasBuzzerActive) {
+        markDynamicContentDirty();
+    }
 }
 
 void HardwareTestScreen::draw() {
+    // Base class handles drawing based on dirty regions
     Screen::draw();
-    
+}
+
+void HardwareTestScreen::drawStaticContent() {
     // Draw title
-    drawTitle("Hardware Test");
+    DisplayUtils::drawTitle(display, "Hardware Test");
     
-    // Draw pin info
+    // Draw pin info labels that never change
     display->setTextColor(ThemeManager::getPrimaryText());
     display->setTextSize(1);
     display->setCursor(10, 35);
     display->print("LED: A0 (GPIO18)");
     display->setCursor(10, 45);
     display->print("Buzzer: A4 (GPIO14)");
+}
+
+void HardwareTestScreen::drawDynamicContent() {
+    // Clear status area
+    display->fillRect(150, 35, 70, 25, ThemeManager::getBackground());
     
     // Show test status
     if (ledTestActive) {
@@ -140,7 +162,7 @@ void HardwareTestScreen::onLEDTestSelected() {
         Serial.println("LED Test: ON (Pin A0/GPIO18)");
         
         // Force redraw to show status
-        markForFullRedraw();
+        markDynamicContentDirty();
     }
 }
 
@@ -157,7 +179,7 @@ void HardwareTestScreen::onBuzzerTestSelected() {
         Serial.println("Buzzer Test: Starting (Testing A4/GPIO14)");
         
         // Force redraw to show status
-        markForFullRedraw();
+        markDynamicContentDirty();
     }
 }
 
@@ -185,7 +207,7 @@ void HardwareTestScreen::updateLEDTest() {
         Serial.println("LED Test: OFF");
         
         // Force redraw to update status
-        markForFullRedraw();
+        markDynamicContentDirty();
     }
 }
 
@@ -250,7 +272,7 @@ void HardwareTestScreen::updateBuzzerTest() {
                 Serial.println("Buzzer Test: Complete");
                 
                 // Force redraw to update status
-                markForFullRedraw();
+                markDynamicContentDirty();
             }
             break;
     }

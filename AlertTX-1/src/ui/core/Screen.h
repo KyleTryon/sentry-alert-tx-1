@@ -4,8 +4,10 @@
 #include <Adafruit_GFX.h>
 #include <Adafruit_ST7789.h>
 #include <Arduino.h>
+#include <functional>
 #include "Component.h"
 #include "Theme.h"
+#include "RenderManager.h"
 
 /**
  * Screen Base Class
@@ -36,6 +38,18 @@ protected:
     
     // Screen identification
     int screenId;
+    
+    // Direct drawing support (for screens that don't use components)
+    struct DirectDrawRegion {
+        enum Type { STATIC, DYNAMIC };
+        Type type;
+        std::function<void()> drawFunc;
+        bool needsRedraw = true;
+    };
+    
+    static const int MAX_DRAW_REGIONS = 8;
+    DirectDrawRegion drawRegions[MAX_DRAW_REGIONS];
+    int drawRegionCount = 0;
 
 public:
     Screen(Adafruit_ST7789* display, const char* name, int id = 0);
@@ -60,7 +74,25 @@ public:
     // Screen state management
     bool isActive() const { return active; }
     void setActive(bool active);
-    void markForFullRedraw() { needsFullRedraw = true; }
+    void markForFullRedraw() { 
+        needsFullRedraw = true; 
+        // Mark all regions as dirty
+        for (auto& region : drawRegions) {
+            region.needsRedraw = true;
+        }
+    }
+    
+    // Direct drawing support for screens that don't use components
+    void addDrawRegion(DirectDrawRegion::Type type, std::function<void()> drawFunc);
+    void markRegionDirty(DirectDrawRegion::Type type);
+    void clearRegionDirty(DirectDrawRegion::Type type);
+    
+    // Backwards compatibility helpers
+    bool isStaticContentDrawn() const;
+    void markStaticContentDrawn();
+    void markDynamicContentDirty();
+    bool shouldRedrawDynamic() const;
+    void clearDynamicRedrawFlag();
     
     // Screen identification
     const char* getName() const { return screenName; }

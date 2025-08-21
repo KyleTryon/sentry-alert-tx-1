@@ -144,12 +144,19 @@ void setup(void) {
 
   // Initialize external status LED
   statusLed.begin(LED_PIN);
+  
+  // Restore flashlight state if enabled
+  if (SettingsManager::getFlashlightEnabled()) {
+    statusLed.on();
+    Serial.println("Flashlight mode restored: ON");
+  }
 
   // Initialize ringtone player and attach LED sync
   Serial.println("8. Initializing ringtone player...");
   ringtonePlayer.begin(BUZZER_PIN);
   ringtonePlayer.attachLed(&statusLed);
-  ringtonePlayer.setLedSyncEnabled(true);
+  // Only enable LED sync if flashlight mode is off
+  ringtonePlayer.setLedSyncEnabled(!SettingsManager::getFlashlightEnabled());
 
   // Initialize MQTT
   Serial.println("9. Initializing MQTT...");

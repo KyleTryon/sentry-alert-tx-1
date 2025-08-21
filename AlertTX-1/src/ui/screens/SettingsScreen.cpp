@@ -5,7 +5,11 @@
 #include "SystemInfoScreen.h"
 #include "../../config/SettingsManager.h"
 #include "../../ringtones/RingtonePlayer.h"
+#include "../../hardware/LED.h"
 #include <WiFi.h>
+
+// Access to global hardware
+extern LED statusLed;
 
 // Static members
 SettingsScreen* SettingsScreen::instance = nullptr;
@@ -35,6 +39,11 @@ SettingsScreen::SettingsScreen(Adafruit_ST7789* display)
     // Setup menu items
     setupMenu();
     
+    // Set up draw regions for efficient rendering
+    addDrawRegion(DirectDrawRegion::STATIC, [this, display]() { 
+        DisplayUtils::drawTitle(display, "Settings");
+    });
+    
     Serial.println("SettingsScreen created");
 }
 
@@ -54,6 +63,13 @@ void SettingsScreen::enter() {
     
     // Reset menu selection
     settingsMenu->setSelectedIndex(0);
+    
+    // Ensure LED state matches flashlight setting
+    bool flashlightOn = SettingsManager::getFlashlightEnabled();
+    if (flashlightOn) {
+        statusLed.on();
+        ringtonePlayer.setLedSyncEnabled(false);
+    }
 }
 
 void SettingsScreen::exit() {
@@ -69,12 +85,8 @@ void SettingsScreen::update() {
 }
 
 void SettingsScreen::draw() {
+    // Base class handles drawing based on dirty regions
     Screen::draw();
-    
-    // Draw title
-    DisplayUtils::drawTitle(display, "Settings");
-    
-    // Components are drawn by Screen::draw()
 }
 
 void SettingsScreen::handleButtonPress(int button) {
@@ -113,6 +125,41 @@ void SettingsScreen::onSystemInfoSelected() {
     navigateToSystemInfo();
 }
 
+void SettingsScreen::onFlashlightSelected() {
+    Serial.println("SettingsScreen: Flashlight selected");
+    
+    // Toggle flashlight state
+    bool currentState = SettingsManager::getFlashlightEnabled();
+    bool newState = !currentState;
+    
+    // Save the new state
+    SettingsManager::setFlashlightEnabled(newState);
+    
+    // Apply the state to the LED and toggle ringtone LED sync
+    if (newState) {
+        // Turn on flashlight and disable LED sync with ringtones
+        statusLed.on();
+        ringtonePlayer.setLedSyncEnabled(false);
+        Serial.println("Flashlight: ON (LED sync disabled)");
+    } else {
+        // Turn off flashlight and re-enable LED sync
+        statusLed.off();
+        ringtonePlayer.setLedSyncEnabled(true);
+        Serial.println("Flashlight: OFF (LED sync enabled)");
+    }
+    
+    // Update menu to show current state
+    if (settingsMenu) {
+        // Update the menu item text to show current state
+        // Flashlight is the 4th item (index 3)
+        MenuItem* flashlightItem = settingsMenu->getItem(3);
+        if (flashlightItem) {
+            flashlightItem->setLabel(newState ? "Flashlight [ON]" : "Flashlight [OFF]");
+            settingsMenu->markDirty();
+        }
+    }
+}
+
 // Static callback wrappers
 void SettingsScreen::ringtoneCallback() {
     if (instance) {
@@ -129,6 +176,12 @@ void SettingsScreen::themeCallback() {
 void SettingsScreen::systemInfoCallback() {
     if (instance) {
         instance->onSystemInfoSelected();
+    }
+}
+
+void SettingsScreen::flashlightCallback() {
+    if (instance) {
+        instance->onFlashlightSelected();
     }
 }
 
@@ -150,6 +203,11 @@ void SettingsScreen::createMenuItems() {
     settingsMenu->addMenuItem("Ringtone", 1, ringtoneCallback);
     settingsMenu->addMenuItem("Themes", 2, themeCallback);
     settingsMenu->addMenuItem("System Info", 3, systemInfoCallback);
+    
+    // Add flashlight with current state
+    bool flashlightOn = SettingsManager::getFlashlightEnabled();
+    settingsMenu->addMenuItem(flashlightOn ? "Flashlight [ON]" : "Flashlight [OFF]", 
+                              4, flashlightCallback);
     
     // Auto-layout the menu
     settingsMenu->autoLayout();

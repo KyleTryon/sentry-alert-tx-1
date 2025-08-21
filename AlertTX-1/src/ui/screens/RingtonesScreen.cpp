@@ -8,6 +8,11 @@ RingtonesScreen::RingtonesScreen(Adafruit_ST7789* display)
     ringtoneMenu = new MenuContainer(display, 10, 50);
     addComponent(ringtoneMenu);
     buildMenu();
+    
+    // Set up draw regions for efficient rendering
+    addDrawRegion(DirectDrawRegion::STATIC, [this, display]() { 
+        DisplayUtils::drawTitle(display, "Ringtones");
+    });
 }
 
 RingtonesScreen::~RingtonesScreen() {
@@ -41,8 +46,8 @@ void RingtonesScreen::update() {
 }
 
 void RingtonesScreen::draw() {
+    // Base class handles drawing based on dirty regions
     Screen::draw();
-    DisplayUtils::drawTitle(display, "Ringtones");
 }
 
 void RingtonesScreen::handleButtonPress(int button) {
