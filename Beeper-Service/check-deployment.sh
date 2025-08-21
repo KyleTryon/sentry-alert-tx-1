@@ -1,0 +1,18 @@
+#!/bin/bash
+
+echo "🔍 Checking deployment status..."
+echo ""
+echo "Run these commands on your server to verify the deployment:"
+echo ""
+echo "# 1. Check if the fix is actually deployed"
+echo "docker exec beeper-service cat /app/dist/types/sentry.js | grep -A5 'request-id'"
+echo ""
+echo "# 2. Check recent webhook errors in detail"
+echo "docker logs beeper-service --since 10m 2>&1 | grep -B2 -A10 'webhook\\|400\\|Invalid'"
+echo ""
+echo "# 3. Check the actual running container's build time"
+echo "docker inspect beeper-service | grep -A2 Created"
+echo ""
+echo "# 4. Force rebuild without cache (if needed)"
+echo "docker-compose build --no-cache beeper-service"
+echo "docker-compose up -d beeper-service"
