@@ -78,7 +78,8 @@ export function createMQTTService() {
     let release = '';
     let project = '';
     let tags: Record<string, string> = {};
-    let priority: MQTTMessage['priority'] = 'medium';
+    // Always use high priority for ALL Sentry alerts to ensure they trigger the beeper
+    let priority: MQTTMessage['priority'] = 'high';
 
     if ('data' in payload && payload.data) {
       if ('event' in payload.data && payload.data.event) {
@@ -92,8 +93,6 @@ export function createMQTTService() {
         if (event.tags) {
           tags = Object.fromEntries(event.tags);
         }
-        // Always use high priority for Sentry alerts to ensure they trigger the beeper
-        priority = 'high';
       }
       if ('triggered_rule' in payload.data && payload.data.triggered_rule) {
         message = `Rule: ${payload.data.triggered_rule}`;
