@@ -94,14 +94,9 @@ void AlertsScreen::drawRow(int index, int y) {
     uint16_t fg = isSelected ? ThemeManager::getSelectedText() : ThemeManager::getPrimaryText();
     display->fillRect(1, y, DISPLAY_WIDTH - 2, ROW_HEIGHT - 2, bg);
 
-    const Icon icon = msg.unread
-        ? Icon{0, 0, MAIL_UNREAD_WIDTH, MAIL_UNREAD_HEIGHT, mail_unread_data}
-        : Icon{0, 0, MAIL_WIDTH, MAIL_HEIGHT, mail_data};
-    DisplayUtils::drawIcon(display, icon, ICON_PADDING_X, y + (ROW_HEIGHT - icon.h) / 2);
-
     display->setTextSize(1);
     display->setTextColor(fg);
-    int textX = ICON_PADDING_X + 16 + TEXT_PADDING_X;
+    int textX = ICON_PADDING_X + TEXT_PADDING_X; // no icon
     int textY = y + 6;
     display->setCursor(textX, textY);
     char titleBuf[22];

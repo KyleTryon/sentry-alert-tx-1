@@ -23,7 +23,7 @@ class SplashScreen : public Screen {
 private:
     // Timing
     unsigned long splashStartTime = 0;
-    static const unsigned long SPLASH_DURATION = 2000;  // 2 seconds
+    static const unsigned long SPLASH_DURATION = 5000;
     bool hasStarted = false;
     bool hasDrawn = false;  // Track if we've already drawn to prevent flickering
     

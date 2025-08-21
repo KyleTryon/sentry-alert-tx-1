@@ -13,15 +13,19 @@ public:
   void update(); // Alias for loop() for consistency with other managers
   bool publish(const char* topic, const char* payload);
   void subscribe(const char* topic);
+  bool isMqttConnected() { return _client.connected(); }
+  void printDebugStatus();
 private:
   WiFiClient _espClient;
   PubSubClient _client;
-  const char* _ssid;
-  const char* _password;
-  const char* _mqttBroker;
+  String _ssid;
+  String _password;
+  String _mqttBroker;
   int _mqttPort;
-  const char* _clientId;
-  const char* _lastSubscribeTopic = nullptr;
+  String _clientId;
+  const char* _mqttUsername = nullptr;
+  const char* _mqttPassword = nullptr;
+  String _lastSubscribeTopic;
 
   // Non-blocking connection state
   bool _wifiStarted = false;
@@ -29,6 +33,9 @@ private:
   bool _mqttTriedOnce = false;
   unsigned long _lastMqttAttemptMs = 0;
   unsigned long _mqttRetryDelayMs = 3000; // 3s backoff
+  unsigned long _wifiStartMs = 0;
+  unsigned long _lastWifiStatusLogMs = 0;
+  bool _wifiAnnouncedConnected = false;
 
   void reconnect(); // retained for compatibility (now non-blocking attempt)
   void tryWifiConnect();

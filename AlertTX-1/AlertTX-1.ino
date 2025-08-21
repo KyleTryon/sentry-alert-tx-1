@@ -53,6 +53,8 @@ static void onMqttMessage(char* topic, uint8_t* payload, unsigned int length) {
   memcpy(buffer, payload, copyLen);
   buffer[copyLen] = '\0';
 
+  Serial.printf("MQTT: message on topic '%s', %u bytes\n", (topic ? topic : ""), length);
+
   // Parse minimal JSON fields
   StaticJsonDocument<512> doc;
   DeserializationError err = deserializeJson(doc, buffer);
@@ -139,7 +141,12 @@ void setup(void) {
   String broker = SettingsManager::getMqttBroker();
   int port = SettingsManager::getMqttPort();
   String cid = SettingsManager::getMqttClientId();
+  Serial.printf("   WiFi SSID: '%s' (len=%d)\n", ssid.c_str(), (int)ssid.length());
+  Serial.printf("   MQTT broker: %s:%d\n", broker.c_str(), port);
   mqtt.begin(ssid.c_str(), pass.c_str(), broker.c_str(), port, cid.c_str());
+  if (pass.length() == 0) {
+    Serial.println("   Note: WiFi password is empty. If SSID is secured, connection will fail.");
+  }
   String sub = SettingsManager::getMqttSubscribeTopic();
   if (sub.length() > 0) {
     mqtt.subscribe(sub.c_str());
@@ -181,10 +188,11 @@ void loop() {
   
   static unsigned long lastDebug = 0;
   if (millis() - lastDebug > 30000) {
-    Serial.println("=== Performance Stats ===");
+    Serial.println("=== Periodic Debug ===");
     screenManager->printPerformanceStats();
     screenManager->printStackState();
     Serial.printf("Free heap: %u bytes\n", ESP.getFreeHeap());
+    mqtt.printDebugStatus();
     Serial.println("=========================");
     lastDebug = millis();
   }

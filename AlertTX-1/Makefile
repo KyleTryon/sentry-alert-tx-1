@@ -49,8 +49,10 @@ gen-secrets:
 	  printf "#define ALERTTX1_ENV_WIFI_PASSWORD        \"%s\"\n" "$${WIFI_PASSWORD:-}"; \
 	  printf "#define ALERTTX1_ENV_MQTT_BROKER          \"%s\"\n" "$${MQTT_BROKER:-localhost}"; \
 	  printf "#define ALERTTX1_ENV_MQTT_PORT            %s\n" "$${MQTT_PORT:-1883}"; \
+	  printf "#define ALERTTX1_ENV_MQTT_USERNAME        \"%s\"\n" "$${MQTT_USERNAME:-}"; \
+	  printf "#define ALERTTX1_ENV_MQTT_PASSWORD        \"%s\"\n" "$${MQTT_PASSWORD:-}"; \
 	  printf "#define ALERTTX1_ENV_MQTT_CLIENT_ID       \"%s\"\n" "$${MQTT_CLIENT_ID:-AlertTX1}"; \
-	  printf "#define ALERTTX1_ENV_MQTT_SUBSCRIBE_TOPIC \"%s\"\n" "$${MQTT_TOPIC_SUBSCRIBE:-alerttx1/messages}"; \
+	  printf "#define ALERTTX1_ENV_MQTT_SUBSCRIBE_TOPIC \"%s\"\n" "$${MQTT_TOPIC_SUBSCRIBE:-alerttx1/alerts}"; \
 	  printf "#define ALERTTX1_ENV_MQTT_PUBLISH_TOPIC   \"%s\"\n" "$${MQTT_TOPIC_PUBLISH:-alerttx1/status}"; \
 	} > "$$out" && echo "✅ Secrets header written" || { echo "❌ Failed to write secrets header"; exit 1; }
 
