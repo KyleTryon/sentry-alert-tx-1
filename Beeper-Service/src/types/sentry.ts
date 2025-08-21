@@ -4,7 +4,7 @@ import { z } from 'zod';
 export const SentryWebhookHeadersSchema = z.object({
   'content-type': z.literal('application/json'),
   'request-id': z.string().uuid().optional(), // Optional - Sentry doesn't always send this
-  'sentry-hook-resource': z.enum(['installation', 'event_alert', 'issue', 'metric_alert', 'error', 'comment']),
+  'sentry-hook-resource': z.string(), // Changed to string to accept any resource type like 'error.created', 'issue.resolved', etc.
   'sentry-hook-timestamp': z.string(),
   'sentry-hook-signature': z.string().optional(), // Optional - only sent when webhook verification is enabled
 });
