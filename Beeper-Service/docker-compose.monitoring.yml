@@ -1,0 +1,109 @@
+# Docker Compose override for monitoring
+# Use with: docker-compose -f docker-compose.yml -f docker-compose.monitoring.yml up
+version: '3.8'
+
+services:
+  # Add health check endpoint to beeper-service
+  beeper-service:
+    labels:
+      - "monitoring.enabled=true"
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+
+  # MQTT Explorer - Web-based MQTT client for debugging
+  mqtt-explorer:
+    image: smeagolworms4/mqtt-explorer
+    container_name: mqtt-explorer
+    ports:
+      - "4000:4000"
+    environment:
+      - HTTP_PORT=4000
+      - CONFIG_PATH=/config
+    volumes:
+      - mqtt_explorer_config:/config
+    networks:
+      - beeper-network
+    restart: unless-stopped
+    deploy:
+      resources:
+        limits:
+          memory: 128M
+
+  # Prometheus for metrics collection
+  prometheus:
+    image: prom/prometheus:latest
+    container_name: prometheus
+    volumes:
+      - ./monitoring/prometheus.yml:/etc/prometheus/prometheus.yml
+      - prometheus_data:/prometheus
+    command:
+      - '--config.file=/etc/prometheus/prometheus.yml'
+      - '--storage.tsdb.path=/prometheus'
+      - '--web.console.libraries=/usr/share/prometheus/console_libraries'
+      - '--web.console.templates=/usr/share/prometheus/consoles'
+    ports:
+      - "9090:9090"
+    networks:
+      - beeper-network
+    restart: unless-stopped
+    deploy:
+      resources:
+        limits:
+          memory: 256M
+
+  # Grafana for visualization
+  grafana:
+    image: grafana/grafana:latest
+    container_name: grafana
+    volumes:
+      - grafana_data:/var/lib/grafana
+      - ./monitoring/grafana/provisioning:/etc/grafana/provisioning
+    environment:
+      - GF_SECURITY_ADMIN_PASSWORD=${GRAFANA_PASSWORD:-admin}
+      - GF_USERS_ALLOW_SIGN_UP=false
+    ports:
+      - "3001:3000"
+    networks:
+      - beeper-network
+    restart: unless-stopped
+    depends_on:
+      - prometheus
+    deploy:
+      resources:
+        limits:
+          memory: 256M
+
+  # MQTT metrics exporter for Prometheus
+  mqtt-exporter:
+    image: kpetrem/mqtt-exporter:latest
+    container_name: mqtt-exporter
+    environment:
+      - MQTT_ADDRESS=${MQTT_BROKER_URL:-mqtt://mosquitto:1883}
+      - MQTT_USERNAME=${MQTT_USERNAME}
+      - MQTT_PASSWORD=${MQTT_PASSWORD}
+      - MQTT_TOPIC=+/+/+
+      - PROMETHEUS_PORT=9000
+      - LOG_LEVEL=INFO
+      - MQTT_V5_PROTOCOL=false
+    ports:
+      - "9000:9000"
+    networks:
+      - beeper-network
+    restart: unless-stopped
+    depends_on:
+      - mosquitto
+    deploy:
+      resources:
+        limits:
+          memory: 128M
+
+volumes:
+  mqtt_explorer_config:
+    driver: local
+  prometheus_data:
+    driver: local
+  grafana_data:
+    driver: local

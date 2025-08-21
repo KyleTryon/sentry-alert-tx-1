@@ -12,7 +12,12 @@
     "test:coverage": "vitest --coverage",
     "lint": "eslint src/**/*.ts",
     "lint:fix": "eslint src/**/*.ts --fix",
-    "type-check": "tsc --noEmit"
+    "type-check": "tsc --noEmit",
+    "monitor": "node monitor.js",
+    "monitor:auto": "node monitor.js --auto",
+    "monitor:remote": "./monitor-remote.sh",
+    "mqtt:debug": "node mqtt-debug.js",
+    "test:webhook": "./test-webhook.sh"
   },
   "keywords": ["sentry", "webhook", "mqtt", "iot", "typescript", "fastify"],
   "author": "",
@@ -21,7 +26,9 @@
     "fastify": "^4.24.3",
     "mqtt": "^5.3.4",
     "zod": "^3.22.4",
-    "crypto": "^1.0.1"
+    "crypto": "^1.0.1",
+    "axios": "^1.6.5",
+    "chalk": "^5.3.0"
   },
   "devDependencies": {
     "@types/node": "^20.9.0",

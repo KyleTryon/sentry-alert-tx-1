@@ -90,6 +90,32 @@ Beeper-Service is designed to run as a persistent process. Recommended options:
 - Never expose MQTT credentials in client-side code.
 - Use TLS/SSL for all MQTT and webhook traffic.
 
+## Monitoring
+
+The service includes comprehensive monitoring tools to ensure reliable message delivery:
+
+- **Interactive Monitor** - Real-time health checks and test messages
+- **MQTT Debug Client** - View all messages flowing through the system  
+- **Remote Monitoring** - Monitor your Digital Ocean deployment from anywhere
+
+Quick start monitoring:
+```bash
+# For local development
+npm run monitor
+
+# For remote deployment (edit monitor-remote.sh first)
+./monitor-remote.sh
+```
+
+## Documentation
+
+- [Deployment Guide](DEPLOYMENT.md) - Production deployment instructions
+- [MQTT Setup](MQTT_SETUP.md) - Detailed MQTT configuration
+- [Docker Optimization](DOCKER_OPTIMIZATION.md) - Container optimization details
+- [Monitoring Guide](MONITORING.md) - Comprehensive monitoring documentation
+- [Remote Monitoring](REMOTE_MONITORING.md) - Monitor Digital Ocean deployments
+- [Quick Start Remote Monitoring](MONITORING_REMOTE_QUICKSTART.md) - Get monitoring in 3 steps
+
 ## Development
 
 - Written in TypeScript/JavaScript (Node.js runtime).

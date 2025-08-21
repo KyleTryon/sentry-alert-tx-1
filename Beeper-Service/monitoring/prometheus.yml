@@ -1,0 +1,29 @@
+global:
+  scrape_interval: 15s
+  evaluation_interval: 15s
+
+scrape_configs:
+  # Scrape Prometheus itself
+  - job_name: 'prometheus'
+    static_configs:
+      - targets: ['localhost:9090']
+
+  # Scrape MQTT metrics
+  - job_name: 'mqtt'
+    static_configs:
+      - targets: ['mqtt-exporter:9000']
+    metric_relabel_configs:
+      - source_labels: [__name__]
+        regex: 'mqtt_(.+)'
+        target_label: __name__
+        replacement: 'beeper_mqtt_$1'
+
+  # Scrape Caddy metrics (if enabled)
+  - job_name: 'caddy'
+    static_configs:
+      - targets: ['caddy:2019']
+
+  # Node exporter for system metrics (optional)
+  - job_name: 'node'
+    static_configs:
+      - targets: ['node-exporter:9100']
