@@ -29,6 +29,7 @@
 #include "src/ui/screens/MainMenuScreen.h"
 #include "src/ui/screens/SplashScreen.h"
 #include "src/ui/screens/AlertsScreen.h"
+#include "src/ui/screens/AlertNotificationScreen.h"
 #include "src/hardware/ButtonManager.h"
 #include "src/hardware/LED.h"
 #include "src/ui/core/InputRouter.h"
@@ -42,6 +43,7 @@ Adafruit_ST7789 tft = Adafruit_ST7789(TFT_CS, TFT_DC, TFT_RST);
 ScreenManager* screenManager;
 MainMenuScreen* mainMenuScreen;
 SplashScreen* splashScreen;
+AlertNotificationScreen* alertNotificationScreen;
 ButtonManager buttonManager;
 InputRouter* inputRouter;
 LED statusLed;
@@ -81,7 +83,22 @@ static void onMqttMessage(char* topic, uint8_t* payload, unsigned int length) {
 
   AlertsScreen* alerts = AlertsScreen::getInstance();
   if (alerts) {
-    alerts->addMessage(title, message, (timeBuf[0] ? timeBuf : ts));
+    alerts->addMessage(title, message, (timeBuf[0] ? timeBuf : ts), true);  // Play ringtone
+    
+    // Show notification popup
+    if (alertNotificationScreen) {
+      alertNotificationScreen->setMessage(title, message, (timeBuf[0] ? timeBuf : ts));
+      
+      ScreenManager* manager = GlobalScreenManager::getInstance();
+      if (manager) {
+        // Only show notification if we're not already showing one
+        Screen* currentScreen = manager->getCurrentScreen();
+        if (currentScreen != alertNotificationScreen) {
+          manager->pushScreen(alertNotificationScreen, false);  // Don't take ownership
+          Serial.println("MQTT: Showing alert notification popup");
+        }
+      }
+    }
   }
 }
 
@@ -158,6 +175,7 @@ void setup(void) {
   screenManager = new ScreenManager(&tft);
   mainMenuScreen = new MainMenuScreen(&tft);
   splashScreen = new SplashScreen(&tft, mainMenuScreen);
+  alertNotificationScreen = new AlertNotificationScreen(&tft);
   
   // STEP 8: Set up global screen manager access
   Serial.println("11. Setting up global screen manager...");
