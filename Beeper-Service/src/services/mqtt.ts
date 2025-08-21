@@ -92,19 +92,8 @@ export function createMQTTService() {
         if (event.tags) {
           tags = Object.fromEntries(event.tags);
         }
-        switch (event.level) {
-          case 'fatal':
-            priority = 'critical';
-            break;
-          case 'error':
-            priority = 'high';
-            break;
-          case 'warning':
-            priority = 'medium';
-            break;
-          default:
-            priority = 'low';
-        }
+        // Always use high priority for Sentry alerts to ensure they trigger the beeper
+        priority = 'high';
       }
       if ('triggered_rule' in payload.data && payload.data.triggered_rule) {
         message = `Rule: ${payload.data.triggered_rule}`;
@@ -116,7 +105,9 @@ export function createMQTTService() {
 
   function buildTopic(message: MQTTMessage): string {
     const { MQTT_TOPIC_PREFIX } = config;
-    return `${MQTT_TOPIC_PREFIX}/${message.priority}/${message.type}`;
+    // Send all messages to the base alerts topic to ensure the beeper receives them
+    // The beeper subscribes to "alerts/#" so this should work
+    return config.MQTT_TOPIC_PREFIX;
   }
 
   async function connect(): Promise<void> {
