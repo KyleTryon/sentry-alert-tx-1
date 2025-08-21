@@ -103,10 +103,10 @@ export function createMQTTService() {
     return { id, timestamp, source: 'sentry', type: payload.action || 'unknown', priority, data: { title, message, level, url, environment, release, project, tags }, raw: payload };
   }
 
-  function buildTopic(_message: MQTTMessage): string {
-    // Send all messages to the base alerts topic to ensure the beeper receives them
-    // The beeper subscribes to "alerts/#" so this should work
-    return config.MQTT_TOPIC_PREFIX;
+  function buildTopic(message: MQTTMessage): string {
+    // The beeper subscribes to "alerts/#" which requires a subtopic
+    // Use just the priority (high/medium/low) as the subtopic
+    return `${config.MQTT_TOPIC_PREFIX}/${message.priority}`;
   }
 
   async function connect(): Promise<void> {
