@@ -50,7 +50,8 @@ LED statusLed;
 
 static void onMqttMessage(char* topic, uint8_t* payload, unsigned int length) {
   // Copy payload to null-terminated buffer
-  static char buffer[512];
+  // Increased buffer size to handle large Sentry messages
+  static char buffer[2048];
   unsigned int copyLen = (length < sizeof(buffer) - 1) ? length : (sizeof(buffer) - 1);
   memcpy(buffer, payload, copyLen);
   buffer[copyLen] = '\0';
@@ -58,10 +59,12 @@ static void onMqttMessage(char* topic, uint8_t* payload, unsigned int length) {
   Serial.printf("MQTT: message on topic '%s', %u bytes\n", (topic ? topic : ""), length);
 
   // Parse minimal JSON fields
-  StaticJsonDocument<512> doc;
+  // Increased size to handle Sentry webhooks (they can be 1600+ bytes)
+  StaticJsonDocument<2048> doc;
   DeserializationError err = deserializeJson(doc, buffer);
   if (err) {
     Serial.printf("MQTT JSON parse error: %s\n", err.c_str());
+    Serial.printf("Buffer size: %u bytes\n", length);
     return;
   }
 
