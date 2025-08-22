@@ -70,7 +70,7 @@ export function createMQTTService() {
   function transformWebhookToMQTTMessage(payload: SentryWebhookPayload): MQTTMessage {
     const id = `sentry_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
     const timestamp = new Date().toISOString();
-    let title = 'Sentry Alert';
+    let title = '';
     let message = '';
     let level = 'info';
     let url = '';
@@ -111,6 +111,11 @@ export function createMQTTService() {
       }
     }
 
+    // Ensure we have a title
+    if (!title) {
+      title = `Sentry ${payload.action || 'Alert'}`;
+    }
+    
     return { id, timestamp, source: 'sentry', type: payload.action || 'unknown', priority, data: { title, message, level, url, environment, release, project, tags }, raw: payload };
   }
 
