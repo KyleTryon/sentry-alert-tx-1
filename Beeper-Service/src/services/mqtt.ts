@@ -94,8 +94,20 @@ export function createMQTTService() {
           tags = Object.fromEntries(event.tags);
         }
       }
+      
+      // Handle issue-specific data
+      if ('issue' in payload.data && payload.data.issue) {
+        const issue = payload.data.issue;
+        title = issue.title || title;
+        // Add issue details to message
+        if (!message && issue.culprit) {
+          message = `in ${issue.culprit}`;
+        }
+        level = issue.level || level;
+      }
+      
       if ('triggered_rule' in payload.data && payload.data.triggered_rule) {
-        message = `Rule: ${payload.data.triggered_rule}`;
+        message = message ? `${message} (Rule: ${payload.data.triggered_rule})` : `Rule: ${payload.data.triggered_rule}`;
       }
     }
 
@@ -153,9 +165,25 @@ export function createMQTTService() {
   async function publishAlert(webhookPayload: SentryWebhookPayload): Promise<void> {
     const message = transformWebhookToMQTTMessage(webhookPayload);
     const topic = buildTopic(message);
-    const messageJson = JSON.stringify(message, null, 0);
+    
+    // Simplify message for beeper - only send what it needs
+    const simplifiedMessage = {
+      data: {
+        title: message.data.title,
+        message: message.data.message
+      },
+      timestamp: message.timestamp
+    };
+    
+    const messageJson = JSON.stringify(simplifiedMessage, null, 0);
     const publishOptions: IClientPublishOptions = { qos: (config.MQTT_QOS as 0 | 1 | 2), retain: false };
-    console.log('Publishing alert to MQTT', { topic, messageId: message.id, priority: message.priority, type: message.type });
+    console.log('Publishing alert to MQTT', { 
+      topic, 
+      messageId: message.id, 
+      priority: message.priority, 
+      type: message.type,
+      size: messageJson.length 
+    });
     if (isConnected && client) {
       publishDirect(topic, messageJson, publishOptions);
     } else {
